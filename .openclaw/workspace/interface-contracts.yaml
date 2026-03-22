@@ -1,0 +1,25 @@
+# TEMPLATE - Filled by Architecture Agent
+version: 1
+endpoints:
+  - path: ""
+    method: "GET"
+    description: ""
+    request:
+      headers: {}
+      query: {}
+      body: {}
+    response:
+      success:
+        status: 200
+        body: {}
+      error:
+        status: 400
+        body: {}
+data_models:
+  - name: ""
+    description: ""
+    fields:
+      field_name:
+        type: ""
+        required: true
+        description: ""

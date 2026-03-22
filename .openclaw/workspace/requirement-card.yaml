@@ -1,0 +1,15 @@
+# TEMPLATE - Filled by Product Planner
+id: "REQ-001"  # e.g., "REQ-001", increment for subsequent requirements
+title: ""
+created_at: ""  # ISO 8601 format, e.g., "2026-03-22T14:00:00Z"
+raw_requirement: ""
+acceptance_criteria:
+  - ""
+out_of_scope:
+  - ""
+tech_constraints:
+  - ""
+modules:
+  - name: ""
+    description: ""
+    depends_on: []  # list of module names this module depends on, e.g., [auth, database]

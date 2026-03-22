@@ -1,0 +1,19 @@
+# Local Claude Code settings (contains local paths/username)
+.claude/settings.local.json
+
+# AutoTeam runtime workspace files (generated per run, not for version control)
+.openclaw/workspace/requirement-card.yaml
+.openclaw/workspace/adr.md
+.openclaw/workspace/interface-contracts.yaml
+.openclaw/workspace/fix-instructions.md
+.openclaw/workspace/escalation.md
+.openclaw/workspace/discussion/
+.openclaw/workspace/qa-reports/security-report.md
+.openclaw/workspace/qa-reports/quality-report.md
+.openclaw/workspace/qa-reports/test-report.md
+
+# Keep templates (they have # TEMPLATE comment at top)
+!.openclaw/workspace/qa-reports/aggregated-report.md
+
+# macOS
+.DS_Store

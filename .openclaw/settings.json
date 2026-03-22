@@ -1,0 +1,14 @@
+{
+  "context": {
+    "files": [
+      ".openclaw/agents/orchestration.md",
+      ".openclaw/agents/product-planner.md",
+      ".openclaw/agents/architecture.md",
+      ".openclaw/agents/implementation.md",
+      ".openclaw/agents/qa-security.md",
+      ".openclaw/agents/qa-quality.md",
+      ".openclaw/agents/qa-test.md",
+      ".openclaw/agents/documentation.md"
+    ]
+  }
+}
