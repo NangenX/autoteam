@@ -30,15 +30,6 @@ JUDGE_DECISION_SCHEMA = {
 
 
 @dataclass
-class NextActionHint:
-    """Hint for what action to take next."""
-
-    type: Literal["continue", "review", "stop", "escalate"]
-    target_role: str | None = None
-    suggested_vendor: str | None = None
-
-
-@dataclass
 class JudgeDecision:
     """Structured decision from the AI Judge."""
 
