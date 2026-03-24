@@ -11,7 +11,7 @@ from autoteam.contracts.worker_result import (
     WorkerResult,
 )
 from autoteam.contracts.decision_schema import JudgeDecision, JUDGE_DECISION_SCHEMA
-from autoteam.contracts.run_state import RunState
+from autoteam.contracts.run_state import RunState, RunStatus
 
 __all__ = [
     # Worker result
@@ -28,4 +28,5 @@ __all__ = [
     "JUDGE_DECISION_SCHEMA",
     # Run state
     "RunState",
+    "RunStatus",
 ]

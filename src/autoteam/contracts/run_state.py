@@ -2,11 +2,22 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Literal
 from uuid import uuid4
 
 from autoteam.contracts.decision_schema import JudgeDecision
 from autoteam.contracts.worker_result import WorkerResult
+
+
+class RunStatus(str, Enum):
+    """Status of an orchestration run."""
+    READY = "ready"
+    RUNNING = "running"
+    COMPLETED = "done"
+    BLOCKED = "blocked"
+    FAILED = "failed"
+    ESCALATED = "escalated"
 
 
 @dataclass

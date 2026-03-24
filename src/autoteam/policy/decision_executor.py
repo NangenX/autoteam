@@ -62,12 +62,7 @@ class DecisionExecutor:
         Returns:
             ExecutionPlan with concrete action
         """
-        if decision.should_stop():
-            return ExecutionPlan(
-                action=ExecutionAction.STOP_RUN,
-                reason=decision.reason,
-            )
-
+        # Check escalate first (escalate may have stop_flag=True)
         if decision.should_escalate():
             return ExecutionPlan(
                 action=ExecutionAction.ESCALATE_HUMAN,
@@ -76,6 +71,12 @@ class DecisionExecutor:
                     "decision": decision.to_dict(),
                     "last_result": self._serialize_result(last_result) if last_result else None,
                 },
+            )
+
+        if decision.should_stop():
+            return ExecutionPlan(
+                action=ExecutionAction.STOP_RUN,
+                reason=decision.reason,
             )
 
         if decision.should_retry():
