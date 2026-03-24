@@ -17,3 +17,29 @@
 
 # macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.venv/
+venv/
+ENV/
+
+# AutoTeam runs (generated at runtime)
+runs/
+!runs/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
