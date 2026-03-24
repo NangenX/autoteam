@@ -8,8 +8,8 @@ from pathlib import Path
 class TranscriptStore:
     """Store raw CLI output transcripts."""
 
-    def __init__(self, base_dir: Path):
-        self.base_dir = base_dir
+    def __init__(self, base_dir: Path | None = None):
+        self.base_dir = base_dir or Path("runs")
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def save_transcript(
