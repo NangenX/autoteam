@@ -43,6 +43,7 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/phase-summary.md` | Orchestration |
 | `.autoteam/workspace/qa-reports/gate-report.md` | Orchestration |
 | `.autoteam/workspace/qa-reports/ratchet-baseline.txt` | Orchestration |
+| `.autoteam/workspace/chunk.md` | Orchestration |
 | `.autoteam/workspace/escalation.md` | Implementation |
 
 ### Rules
@@ -258,7 +259,31 @@ fixes:
 ### Step 10.5 — Git Integration
 After all code and docs are written:
 1. Create branch: `autoteam/<YYYYMMDD>-<slug>` (slug = first 3 words of requirement, kebab-case)
-2. Stage all generated/modified files (exclude `.autoteam/workspace/`, `.autoteam/runs/`)
+1.5. **Generate work chunk evidence** — write `.autoteam/workspace/chunk.md`:
+   ```markdown
+   # Work Chunk: <requirement title from requirement-card.yaml>
+
+   ## Intent
+   - <one-line description of what behavior/structure changed>
+
+   ## Preconditions
+   - Branch base: <base branch name>
+   - Harness status before: <PASS/FAIL/N/A (from pre-existing gate check)>
+
+   ## Evidence
+   - Multi-Gate: <N/N active gates PASS / FAIL at gate X / all SKIPPED>
+   - QA Council: <N/3 ACCEPT — scores: security X.X, quality X.X, design X.X, test X.X, functionality X.X>
+   - QA Rounds: <N round(s) to pass>
+   - Sprint Contract: <MET / NOT_MET / SKIPPED>
+   - Files created: <count>
+   - Files modified: <count>
+   - Test files: <count>
+
+   ## Rollback
+   git revert <commit-sha>  # fill in after commit
+   ```
+   - Pull data from: `requirement-card.yaml` (intent), `qa-reports/aggregated-report.md` (QA results), `qa-reports/gate-report.md` (gate results), `sprint-contract.yaml` (contract status)
+2. Stage all generated/modified files + `.autoteam/workspace/chunk.md` (exclude rest of `.autoteam/workspace/`, `.autoteam/runs/`)
 3. Commit with message:
    ```
    feat: <one-line requirement summary>
