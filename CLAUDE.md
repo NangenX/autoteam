@@ -41,14 +41,18 @@ All agent definitions, pipeline steps, QA rules, and dispatch protocols live in 
 
 ## Harness Engineering Alignment
 
-| Design | Principle |
-|---|---|
-| `.autoteam/workspace/` file protocol | Repo as Source of Truth |
-| Linter Pre-Gate (ruff/eslint/go vet) | Mechanical Enforcement |
-| Golden Rules + QA loop | Entropy Management |
-| Phase Summaries + STEP 0: ORIENT | Agent Readability |
-| Git branch + commit integration | Throughput → Merge |
-| Self-contained skills + model routing | Harness Definition |
+| Design | Principle | Source |
+|---|---|---|
+| `.autoteam/workspace/` file protocol | Repo as Source of Truth | Harness Engineering |
+| Linter Pre-Gate (ruff/eslint/go vet) | Mechanical Enforcement | Harness Engineering |
+| Golden Rules + QA loop | Entropy Management | Harness Engineering |
+| Phase Summaries + STEP 0: ORIENT | Agent Readability | Harness Engineering |
+| Git branch + commit integration | Throughput → Merge | Harness Engineering |
+| Self-contained skills + model routing | Harness Definition | Harness Engineering |
+| Sprint Contract (Impl ↔ QA negotiation) | Generator-Evaluator Contract | Anthropic Original |
+| Structured Grading (5 dimensions, 1-5 scale) | Grading Criteria | Anthropic Original |
+| Interactive Evaluation (Playwright) | Live App Evaluation | Anthropic Original |
+| Section 7: Simplification Rules | Harness Simplification | Anthropic Original |
 
 ## Security
 

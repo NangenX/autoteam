@@ -39,6 +39,7 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/qa-reports/test-report.md` | QA Test |
 | `.autoteam/workspace/qa-reports/aggregated-report.md` | Orchestration |
 | `.autoteam/workspace/fix-instructions.md` | Orchestration |
+| `.autoteam/workspace/sprint-contract.yaml` | Orchestration |
 | `.autoteam/workspace/phase-summary.md` | Orchestration |
 | `.autoteam/workspace/qa-reports/lint-report.md` | Orchestration |
 | `.autoteam/workspace/escalation.md` | Implementation |
@@ -108,6 +109,42 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
 - If no contradiction: skip entirely
 - Print: `[Step 3/8] ✓ Architecture-Planner alignment verified`
 
+### Step 5.5 — Sprint Contract Negotiation
+Before Implementation writes any code, Orchestration facilitates a contract between Implementation and QA Test:
+
+1. **Implementation proposes** for each module:
+   - What will be built (features, endpoints, commands)
+   - How success will be verified (specific testable behaviors)
+   - What's explicitly NOT included
+2. **QA Test reviews** the proposal:
+   - Are success criteria testable and specific? (not "it works" but "POST /users returns 201 with {id, username}")
+   - Are edge cases covered? (empty input, auth failure, concurrent access)
+   - Is anything missing from acceptance criteria?
+3. **Iterate** until both agree (max 2 rounds). Orchestration writes the agreed contract to `.autoteam/workspace/sprint-contract.yaml`:
+
+```yaml
+modules:
+  - id: MOD-001
+    name: "User Authentication"
+    done_criteria:
+      - id: DC-001
+        behavior: "POST /auth/login with valid credentials returns 200 + JWT token"
+        testable: true
+      - id: DC-002
+        behavior: "POST /auth/login with invalid password returns 401"
+        testable: true
+    not_included:
+      - "OAuth2 social login"
+      - "Password reset flow"
+```
+
+4. Implementation uses done_criteria as its implementation checklist
+5. QA Test uses done_criteria as its evaluation checklist (in addition to acceptance criteria)
+
+- Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
+
+**Skip conditions:** If only 1 module with ≤3 acceptance criteria, skip contract (too simple to need negotiation).
+
 ### Step 6 — Dispatch Implementation
 - Read `modules` from `requirement-card.yaml`
 - Modules with no `depends_on`: dispatch as **parallel** subagents
@@ -147,7 +184,14 @@ Dispatch three QA subagents **in sequence** (not parallel):
 ### Step 8 — Aggregate QA Results
 - Merge all three reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
 - Prefix IDs: SEC-, QUA-, TST-
-- Set `ALL_CLEAR: true` only if zero CRITICAL findings
+- Set `ALL_CLEAR: true` only if zero CRITICAL findings AND overall quality score ≥ 3.0/5
+- Collect quality scores from each QA report and record in aggregated-report.md header:
+  ```
+  ## Quality Scores (Round N)
+  Security Posture: X/5 | Code Quality: X/5 | Design Coherence: X/5 | Test Coverage: X/5 | Functionality: X/5
+  Overall: X.X/5 (average)
+  ```
+- If scores decrease between QA rounds, flag as `[REGRESSION]` in aggregated report
 - Write `.autoteam/workspace/fix-instructions.md` listing every CRITICAL as structured fix task:
 ```yaml
 fixes:
@@ -162,7 +206,7 @@ fixes:
 - **Write phase-summary.md** with QA results (critical count, pending fixes)
 
 ### Step 9 — QA Loop Decision
-**ALL_CLEAR=true** → go to Step 10
+**ALL_CLEAR=true** (zero CRITICAL + score ≥ 3.0/5) → go to Step 10
 
 **ALL_CLEAR=false** →
 - Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
@@ -348,8 +392,9 @@ functions: []
 1. Read `.autoteam/workspace/requirement-card.yaml` — list acceptance criteria IDs
 2. Read `.autoteam/workspace/adr.md` — confirm tech stack and module list
 3. Read `.autoteam/workspace/interface-contracts.yaml` — list all endpoints/commands
-4. If FIX MODE: read `fix-instructions.md` and list assigned fix IDs
-5. Print: `Mode: [NORMAL|FIX] | Module: [name] | Criteria: [N] | Fixes: [IDs or none]`
+4. Read `.autoteam/workspace/sprint-contract.yaml` — list done_criteria IDs for assigned module
+5. If FIX MODE: read `fix-instructions.md` and list assigned fix IDs
+6. Print: `Mode: [NORMAL|FIX] | Module: [name] | Criteria: [N] | Done-Criteria: [N] | Fixes: [IDs or none]`
 
 #### NORMAL MODE (first implementation)
 - Implement EXACTLY what interface-contracts specify — every endpoint, field, command, function
@@ -358,6 +403,7 @@ functions: []
 - Follow tech stack naming conventions (Python: snake_case, JS: camelCase, Go: PascalCase exports)
 - No comments restating what code does; comment only non-obvious logic
 - No deprecated APIs; no error handling for impossible scenarios
+- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior
 - If something seems missing: write `escalation.md`, do NOT add it silently
 
 #### FIX MODE (after QA loop)
@@ -425,9 +471,9 @@ Reason scope is insufficient: [explanation]
 ## ALL_CLEAR: [true only if zero CRITICAL]
 ```
 
----
+**Score:** Include at end of report: `security_posture: X/5` (1=critical exploits, 5=defense in depth) with 1-2 sentence rationale.
 
-### 5.5 QA Quality Agent
+---
 
 **Role:** Review code quality. Report only — do not fix.
 **Input:** All project source files (excluding `.autoteam/`)
@@ -452,6 +498,8 @@ Reason scope is insufficient: [explanation]
 
 **Report Format:** Same table structure as Security, with `Fix` column. `ALL_CLEAR: true` only if zero CRITICAL.
 
+**Scores:** Include at end of report: `code_quality: X/5` (1=unmaintainable, 5=exemplary), `design_coherence: X/5` (1=random patterns, 5=unified architecture) with 1-2 sentence rationale per score.
+
 ---
 
 ### 5.6 QA Test Agent
@@ -462,11 +510,12 @@ Reason scope is insufficient: [explanation]
 
 **Process:**
 1. Read acceptance criteria from requirement-card.yaml
-2. For each criterion: search tests for a covering test that would fail if criterion violated
+2. Read sprint-contract.yaml — load done_criteria per module as additional test targets
+3. For each criterion: search tests for a covering test that would fail if criterion violated
    - Covering = invokes code path AND asserts specific behavior (not just "no exception")
-3. Run test suite via Bash (pytest, npm test, go test, etc.)
-4. Capture: command, exit code, pass/fail counts, failure output
-5. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
+4. Run test suite via Bash (pytest, npm test, go test, etc.)
+5. Capture: command, exit code, pass/fail counts, failure output
+6. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
 
 **Report Format:**
 ```markdown
@@ -486,10 +535,40 @@ Passing: N | Failing: N
 | Criterion | Description | Status | Test(s) |
 | AC-001 | ... | COVERED/UNCOVERED/FAILING | test_name |
 
+## Sprint Contract Verification
+| Criterion | Behavior | Status | Evidence |
+| DC-001 | POST /auth/login returns 200 + JWT | PASS/FAIL | test_login_success |
+
+## Scores
+test_coverage: X/5
+functionality: X/5
+Rationale: [1-2 sentences per score]
+
 ## ALL_CLEAR: [true only if zero CRITICAL]
 ```
 
 **NOT in scope:** Security, code quality, test organization
+
+#### Interactive Evaluation (Web Apps Only)
+If the project is a web application (has api_endpoints or serves HTML):
+
+1. **Start the dev server** (detect from tech stack: `npm run dev`, `python -m flask run`, `uvicorn`, `go run .`, etc.)
+2. **Use Playwright/browser tools** (if available via MCP or installed locally) to interact with the running app:
+   - Navigate to each page/route
+   - Fill forms and submit
+   - Click interactive elements
+   - Verify responses match sprint contract done_criteria
+3. **Record interactive findings** in the report:
+   ```markdown
+   ## Interactive Evaluation
+   | ID | Page/Route | Action | Expected | Actual | Status |
+   | INT-001 | /login | Submit valid credentials | Redirect to /dashboard | Redirected correctly | PASS |
+   | INT-002 | /users | Click delete button | Confirmation dialog | User deleted without dialog | FAIL |
+   ```
+4. Interactive FAIL findings are CRITICAL (user-facing bugs)
+5. **Stop the dev server** after evaluation
+
+**Skip conditions:** Not a web app, no dev server command detectable, or Playwright/browser tools not available (`which playwright` or `npx playwright --version` fails). Print: `[QA Test] ⚠️ Interactive evaluation skipped: {reason}`
 
 ---
 
@@ -552,3 +631,31 @@ Reason: <specific error>
 Partial output: <list of files created before failure, or "none">
 ```
 Stop. Do not attempt further stages.
+
+---
+
+## Section 7: Harness Simplification Rules
+
+_Adapted from Anthropic's harness design principle: "find the simplest solution possible, and only increase complexity when needed." Every component encodes an assumption about what the model can't do on its own — stress test those assumptions._
+
+### When to simplify the pipeline
+
+| Component | Assumption it encodes | When to consider dropping |
+|-----------|----------------------|--------------------------|
+| Discussion Node 1 | Architecture may miss acceptance criteria | Skip rate >90% across runs |
+| Sprint Contract | Implementation may build the wrong thing | QA round-1 pass rate >90% without contract |
+| Linter Pre-Gate | LLM misses mechanical violations | Never — deterministic checks are always cheaper |
+| 3 separate QA agents | Specialized focus catches more | If one agent consistently finds zero issues |
+| FIX MODE minimal-change rule | Implementation over-refactors during fixes | If Implementation shows discipline without constraint |
+
+### When to add complexity
+- A new failure mode appears in >30% of runs → add a component
+- A QA agent consistently misses a category → add criteria or a new agent
+- Context limits hit regularly → add context reset boundaries
+
+### Model upgrade checklist
+When a new model version is available:
+1. Run 3 test prompts with current pipeline
+2. Run same prompts with one component removed
+3. If output quality is equivalent → remove that component
+4. Update model assignments if a cheaper model handles a role adequately
