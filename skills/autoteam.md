@@ -215,6 +215,13 @@ Dispatch three QA agents **in sequence**:
 - Merge all three reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
 - Prefix IDs: SEC-, QUA-, TST-
 - Set `ALL_CLEAR: true` only if zero CRITICAL findings AND overall quality score ≥ 3.0/5
+- Tally council votes from each QA report:
+  ```
+  ## Council Tally
+  QA Security: ACCEPT (HIGH) | QA Quality: ACCEPT (MEDIUM) | QA Test: REJECT (HIGH)
+  Result: 2/3 ACCEPT → PASS | 1/3 ACCEPT → FAIL
+  ```
+- Set `ALL_CLEAR: true` only if: **Council ≥ 2/3 ACCEPT** AND zero CRITICAL findings AND overall quality score ≥ 3.0/5
 - Collect quality scores from each QA report and record in aggregated-report.md header:
   ```
   ## Quality Scores (Round N)
@@ -236,7 +243,7 @@ fixes:
 - **Write phase-summary.md** with QA results (critical count, pending fixes)
 
 ### Step 9 — QA Loop Decision
-**ALL_CLEAR=true** (zero CRITICAL + score ≥ 3.0/5) → go to Step 10
+**ALL_CLEAR=true** (≥2/3 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
 
 **ALL_CLEAR=false** →
 - Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
@@ -295,9 +302,11 @@ task(
 | Architecture | `claude-opus-4.6` |
 | Implementation | `claude-sonnet-4.6` |
 | QA Security | `claude-sonnet-4.6` |
-| QA Quality | `claude-sonnet-4.6` |
+| QA Quality | `gpt-5.1` |
 | QA Test | `claude-sonnet-4.6` |
 | Documentation | `claude-haiku-4.5` |
+
+**Council diversity:** QA Quality intentionally uses a different model family (GPT) to provide independent perspective. This mirrors the OpenAI Harness Engineering "Council" pattern — diverse models catch different issues.
 
 ### Prompt Template for Each Subagent
 
@@ -455,6 +464,14 @@ Reason scope is insufficient: [explanation]
 
 `ALL_CLEAR: true` only if zero CRITICAL.
 
+**Council Vote:** Append to report:
+```
+## Council Vote
+vote: ACCEPT | REJECT
+rationale: <one sentence summarizing security posture>
+confidence: HIGH | MEDIUM | LOW
+```
+
 ---
 
 ### 5.5 QA Quality Agent
@@ -480,6 +497,14 @@ Reason scope is insufficient: [explanation]
 
 `ALL_CLEAR: true` only if zero CRITICAL.
 
+**Council Vote:** Append to report:
+```
+## Council Vote
+vote: ACCEPT | REJECT
+rationale: <one sentence summarizing code quality posture>
+confidence: HIGH | MEDIUM | LOW
+```
+
 ---
 
 ### 5.6 QA Test Agent
@@ -502,6 +527,14 @@ Reason scope is insufficient: [explanation]
 - Sprint Contract Verification (DC-XXX | Behavior | PASS/FAIL | Evidence)
 - **Scores:** `test_coverage: X/5`, `functionality: X/5` with 1-2 sentence rationale per score
 - `ALL_CLEAR: true` only if zero CRITICAL
+
+**Council Vote:** Append to report:
+```
+## Council Vote
+vote: ACCEPT | REJECT
+rationale: <one sentence summarizing test coverage and functionality>
+confidence: HIGH | MEDIUM | LOW
+```
 
 **NOT in scope:** Security, quality, test organization
 

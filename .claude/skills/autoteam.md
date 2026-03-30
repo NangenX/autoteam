@@ -211,6 +211,13 @@ Dispatch three QA subagents **in sequence** (not parallel):
 - Merge all three reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
 - Prefix IDs: SEC-, QUA-, TST-
 - Set `ALL_CLEAR: true` only if zero CRITICAL findings AND overall quality score ≥ 3.0/5
+- Tally council votes from each QA report:
+  ```
+  ## Council Tally
+  QA Security: ACCEPT (HIGH) | QA Quality: ACCEPT (MEDIUM) | QA Test: REJECT (HIGH)
+  Result: 2/3 ACCEPT → PASS | 1/3 ACCEPT → FAIL
+  ```
+- Set `ALL_CLEAR: true` only if: **Council ≥ 2/3 ACCEPT** AND zero CRITICAL findings AND overall quality score ≥ 3.0/5
 - Collect quality scores from each QA report and record in aggregated-report.md header:
   ```
   ## Quality Scores (Round N)
@@ -232,7 +239,7 @@ fixes:
 - **Write phase-summary.md** with QA results (critical count, pending fixes)
 
 ### Step 9 — QA Loop Decision
-**ALL_CLEAR=true** (zero CRITICAL + score ≥ 3.0/5) → go to Step 10
+**ALL_CLEAR=true** (≥2/3 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
 
 **ALL_CLEAR=false** →
 - Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
@@ -495,9 +502,12 @@ Reason scope is insufficient: [explanation]
 [same table format]
 
 ## ALL_CLEAR: [true only if zero CRITICAL]
-```
 
-**Score:** Include at end of report: `security_posture: X/5` (1=critical exploits, 5=defense in depth) with 1-2 sentence rationale.
+## Council Vote
+vote: ACCEPT | REJECT
+rationale: <one sentence summarizing security posture>
+confidence: HIGH | MEDIUM | LOW
+```(1=critical exploits, 5=defense in depth) with 1-2 sentence rationale.
 
 ---
 
@@ -525,6 +535,14 @@ Reason scope is insufficient: [explanation]
 **Report Format:** Same table structure as Security, with `Fix` column. `ALL_CLEAR: true` only if zero CRITICAL.
 
 **Scores:** Include at end of report: `code_quality: X/5` (1=unmaintainable, 5=exemplary), `design_coherence: X/5` (1=random patterns, 5=unified architecture) with 1-2 sentence rationale per score.
+
+**Council Vote:** Append to report:
+```
+## Council Vote
+vote: ACCEPT | REJECT
+rationale: <one sentence summarizing code quality posture>
+confidence: HIGH | MEDIUM | LOW
+```
 
 ---
 
@@ -571,9 +589,12 @@ functionality: X/5
 Rationale: [1-2 sentences per score]
 
 ## ALL_CLEAR: [true only if zero CRITICAL]
-```
 
-**NOT in scope:** Security, code quality, test organization
+## Council Vote
+vote: ACCEPT | REJECT
+rationale: <one sentence summarizing test coverage and functionality>
+confidence: HIGH | MEDIUM | LOW
+```
 
 #### Interactive Evaluation (Web Apps Only)
 If the project is a web application (has api_endpoints or serves HTML):
