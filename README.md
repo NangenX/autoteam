@@ -1,16 +1,113 @@
 # AutoTeam
 
-An autonomous AI development team that runs entirely inside Claude Code. Type one command, get working code.
+**中文** | [English](#english)
 
+---
+
+## 中文说明
+
+AutoTeam 是一个运行在 Claude Code 和 Copilot CLI 中的自主 AI 开发团队框架。输入一个需求，8 个专业 AI 智能体自动协作完成分析、设计、编码、测试和文档，全程无需人工干预。
+
+### 快速开始
+
+**Claude Code：**
+```
+/autoteam "构建一个任务管理的 REST API"
+```
+
+**Copilot CLI：**
+```
+Run autoteam with requirement: 构建一个任务管理的 REST API
+```
+
+### 工作流程
+
+```
+需求输入
+  ↓
+产品规划师 ──→ requirement-card.yaml（结构化验收标准）
+  ↓
+架构设计师 ──→ adr.md + interface-contracts.yaml
+  ↓  ← [讨论轮次：最多 3 轮]
+实现工程师 ──→ 源代码
+  ↓
+多门控检查（Gates A-F）──→ 机械性违规校验 + 棘轮模式（棕地项目）
+  ↓
+QA 委员会（3 智能体 + 多模型投票）
+  QA 安全  ──→ security-report.md
+  QA 质量  ──→ quality-report.md
+  QA 测试  ──→ test-report.md
+  ↓  ← [修复循环：最多 3 轮，最小变更原则]
+文档智能体 ──→ docs/ + AGENTS.md
+  ↓
+Work Chunk 证据文件 ──→ chunk.md（提交存证）
+  ↓
+Git 提交到新分支
+  ↓
+✅ 完成
+```
+
+### 团队成员
+
+| 智能体 | 模型 (Claude Code) | 模型 (Copilot CLI) | 职责 |
+|---|---|---|---|
+| 编排 | opus | opus | 流水线控制、讨论调解、质量门控 |
+| 产品规划师 | sonnet | sonnet | 需求分析 → 验收标准 |
+| 架构设计师 | opus | opus | 技术选型 + 接口契约 |
+| 实现工程师 | sonnet | sonnet | 编写代码，最小化修复 QA 问题 |
+| QA 安全 | sonnet | sonnet | OWASP Top 10、注入、认证漏洞 |
+| QA 质量 | sonnet | **gpt-5.1** | 复杂度、重复代码、SOLID 违规 |
+| QA 测试 | sonnet | sonnet | 测试覆盖率对比验收标准 |
+| 文档 | haiku | haiku | README、API 文档、AGENTS.md |
+
+> Copilot CLI 中 QA Quality 使用 GPT 模型，实现**多模型委员会**投票，不同模型视角发现不同问题。
+
+### v3.0 新特性（OpenAI Harness 集成）
+
+| 特性 | 说明 |
+|---|---|
+| **多门控检查（Gates A-F）** | Gate A 格式/Lint → B 导入边界 → C 结构规则 → D 快照 → E 黄金输出 → F 数值等价 |
+| **棘轮模式** | 棕地/遗留/重构项目中，允许现有违规，阻止新增违规 |
+| **委员会投票** | 每个 QA 智能体输出 ACCEPT/REJECT 票，需 ≥2/3 ACCEPT 才能通过 |
+| **AGENTS.md 自动生成** | 文档智能体自动检测 harness 命令，生成项目根目录的 AGENTS.md |
+| **Work Chunk 证据** | 每次提交前生成 chunk.md，记录意图、前置条件、QA 结果、回滚方案 |
+
+### 设计来源
+
+| 设计 | 原则 | 来源 |
+|---|---|---|
+| `.autoteam/workspace/` 文件协议 | 仓库即真相 | Harness Engineering |
+| 多门控检查（A-F） | 机械性强制 | OpenAI Harness |
+| 棘轮机制 | 棕地支持 | OpenAI Harness |
+| 委员会投票（2/3 多模型） | 智能体互审 | OpenAI Harness |
+| Work Chunks 证据协议 | 证据化提交 | OpenAI Harness |
+| AGENTS.md 自动生成 | 渐进式披露 | OpenAI Harness |
+| 黄金规则 + QA 循环 | 熵管理 | Harness Engineering |
+| 阶段摘要 + STEP 0: ORIENT | 智能体可读性 | Harness Engineering |
+| Git 分支 + 提交集成 | 吞吐量→合并 | Harness Engineering |
+| Sprint 契约 | 生成-评估契约 | Anthropic Original |
+| 结构化评分（5 维度） | 评分标准 | Anthropic Original |
+| Section 7: 简化规则 | Harness 简化 | Anthropic Original |
+
+---
+
+## English
+
+AutoTeam is an autonomous AI development team framework running entirely inside Claude Code and Copilot CLI. One command triggers a full 8-agent pipeline that analyzes, designs, implements, tests, and documents software — no human steps between.
+
+### Quick Start
+
+**Claude Code:**
 ```
 /autoteam "build a REST API for task management"
 ```
 
-Seven specialized agents — Product Planner, Architecture, Implementation, three QA layers, and Documentation — collaborate automatically to deliver production-ready code from a single requirement.
+**Copilot CLI:**
+```
+Run autoteam with requirement: build a REST API for task management
+```
 
----
-
-## How It Works
+### How It Works
 
 ```
 /autoteam "requirement"
@@ -20,122 +117,75 @@ Seven specialized agents — Product Planner, Architecture, Implementation, thre
   Product Planner ──→ requirement-card.yaml
         ↓
   Architecture ──→ adr.md + interface-contracts.yaml
-        ↓  ← [Discussion: Arch ↔ Planner, up to 3 rounds]
+        ↓  ← [Discussion: up to 3 rounds]
   Implementation ──→ source code
         ↓
-  QA Security ──→ security-report.md
-  QA Quality  ──→ quality-report.md
-  QA Test     ──→ test-report.md
+  Multi-Gate Check (Gates A-F) ──→ gate-report.md
+        ↓
+  QA Council (3 agents, multi-model voting)
+    QA Security ──→ security-report.md
+    QA Quality  ──→ quality-report.md
+    QA Test     ──→ test-report.md
         ↓  ← [Fix loop: up to 3 rounds, minimal-change rule]
-  Documentation ──→ docs/
+  Documentation ──→ docs/ + AGENTS.md
+        ↓
+  Work Chunk Evidence ──→ chunk.md
+        ↓
+  Git commit on new branch
         ↓
   ✅ Done
 ```
 
-Agents communicate exclusively through files in `.openclaw/workspace/`. No agent can modify another agent's output. If a fix requires an architectural change, Implementation escalates — it cannot unilaterally change what Architecture decided.
+### Team
 
----
+| Agent | Model (Claude Code) | Model (Copilot CLI) | Responsibility |
+|---|---|---|---|
+| Orchestration | opus | opus | Pipeline controller, mediator, quality arbiter |
+| Product Planner | sonnet | sonnet | Requirement → acceptance criteria |
+| Architecture | opus | opus | Tech stack + interface contracts |
+| Implementation | sonnet | sonnet | Writes code; minimal-change fixes |
+| QA Security | sonnet | sonnet | OWASP Top 10, injection, auth |
+| QA Quality | sonnet | **gpt-5.1** | Complexity, duplication, SOLID |
+| QA Test | sonnet | sonnet | Test coverage vs acceptance criteria |
+| Documentation | haiku | haiku | README, API docs, AGENTS.md |
 
-## Quick Start
+### Key Design Decisions
 
-### 1. Clone into your project
+**Multi-Gate Check (A-F)** — Before QA agents run, deterministic gates check lint, import boundaries, structural rules, snapshots, golden outputs, and numerical equivalence. Gates B-F are conditional on project config. Ratchet mode allows existing violations in brownfield projects while blocking new ones.
 
-```bash
-git clone https://github.com/NangenX/autoteam.git
-cd autoteam
-```
+**Council voting** — Each QA agent outputs a vote (ACCEPT/REJECT) with rationale and confidence. ALL_CLEAR requires ≥2/3 ACCEPT + zero CRITICAL + score ≥3.0/5. Copilot CLI uses GPT for QA Quality to provide cross-model perspective.
 
-### 2. Open with Claude Code
+**Work Chunk evidence** — Before every commit, `chunk.md` is generated with intent, preconditions, gate results, council scores, and rollback instructions. Committed alongside code for auditable history.
 
-```bash
-claude
-```
+**Minimal-change fix rule** — Implementation fixes only the specific file/function/lines in `fix-instructions.md`. No opportunistic refactoring.
 
-### 3. Run a requirement
+**File ownership** — Each agent owns exactly one set of output files. Workspace: `.autoteam/workspace/`.
 
-```
-/autoteam "create a CLI tool that converts CSV to JSON"
-```
+**Bounded loops** — Discussion phase and QA fix loop both capped at 3 rounds.
 
-The pipeline runs end-to-end and delivers source code + docs in the current directory.
+**AGENTS.md** — Documentation agent auto-detects the harness command (justfile/package.json/pyproject.toml/Makefile) and generates `AGENTS.md` at project root for future AI agent onboarding.
 
----
-
-## Team
-
-| Agent | Model | Responsibility |
-|---|---|---|
-| Orchestration | claude-opus-4-6 | Pipeline controller, discussion mediator, quality gate |
-| Product Planner | claude-sonnet-4-6 | Requirement → structured acceptance criteria |
-| Architecture | claude-opus-4-6 | Tech stack + interface contracts |
-| Implementation | claude-sonnet-4-6 | Writes code; fixes QA findings (minimal-change rule) |
-| QA Security | claude-sonnet-4-6 | OWASP Top 10, injection, auth vulnerabilities |
-| QA Quality | claude-sonnet-4-6 | Complexity, duplication, SOLID violations |
-| QA Test | claude-sonnet-4-6 | Test coverage against acceptance criteria |
-| Documentation | claude-haiku-4-5 | README, API docs, architecture summary |
-
----
-
-## Key Design Decisions
-
-**Minimal-change fix rule** — When QA finds issues, Implementation fixes only the specific file/function/lines listed in `fix-instructions.md`. No opportunistic refactoring. This prevents fixes from introducing new problems and keeps the codebase from drifting in unexpected directions.
-
-**File ownership** — Each agent owns exactly one set of output files and cannot write to anything else. Orchestration owns all coordination files. This is the primary integrity guarantee of the workspace.
-
-**Bounded loops** — Both the Architecture discussion phase and the QA fix loop are capped at 3 rounds. After 3 rounds, Orchestration makes a binding decision and the pipeline advances. No infinite loops.
-
-**Escalation path** — If a QA fix requires changing an interface or architecture decision, Implementation writes `escalation.md` instead of expanding scope. Orchestration decides whether to re-engage Architecture.
-
-**Separation of QA concerns** — Security, code quality, and test coverage are separate agents with hard scope boundaries. Each agent ignores the other agents' domains. This prevents duplicate findings and ensures each layer is thorough within its scope.
-
----
-
-## Project Structure
+### Project Structure
 
 ```
 .
 ├── .claude/
 │   └── skills/
-│       └── autoteam.md          # /autoteam entry point
-├── .openclaw/
-│   ├── settings.json            # Auto-loads agent definitions
-│   ├── agents/                  # Agent system prompts
-│   │   ├── orchestration.md
-│   │   ├── product-planner.md
-│   │   ├── architecture.md
-│   │   ├── implementation.md
-│   │   ├── qa-security.md
-│   │   ├── qa-quality.md
-│   │   ├── qa-test.md
-│   │   └── documentation.md
-│   └── workspace/               # Agent communication (per-run, gitignored)
-│       ├── requirement-card.yaml
-│       ├── adr.md
-│       ├── interface-contracts.yaml
-│       ├── fix-instructions.md
-│       ├── discussion/
-│       └── qa-reports/
-├── docs/
-│   └── superpowers/specs/
-│       └── 2026-03-22-autoteam-design.md  # Full design spec
-└── CLAUDE.md                    # Project context for Claude Code
+│       └── autoteam.md       # Claude Code skill (v3.0, self-contained)
+├── skills/
+│   └── autoteam.md           # Copilot CLI skill (v3.0, self-contained)
+├── src/                      # AutoTeam Python source (CLI runner)
+├── tests/                    # Test suite
+├── CLAUDE.md                 # Project index + alignment table
+└── config/                   # Configuration
 ```
 
----
+All 8 agent definitions are embedded inline in the skill files. No external agent files required.
 
-## Extending the Team
+### Requirements
 
-**Add a QA layer** — Create `qa-performance.md` in `.openclaw/agents/`, assign it `qa-reports/performance-report.md`, dispatch it in `orchestration.md` Step 7, include it in aggregation with a `PER-` prefix.
+- [Claude Code](https://claude.ai/code) CLI — for the `.claude/skills/` version
+- [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) — for the `skills/` version
+- Anthropic API key (Claude Opus 4, Sonnet 4, Haiku models)
+- OpenAI API key (optional — only needed for Copilot CLI Council diversity with gpt-5.1)
 
-**Swap a model** — Change the `model:` field in any agent definition file. The pipeline is model-agnostic at the file protocol level.
-
-**Add an agent** — Create the definition file, declare its output files, add a dispatch step to `orchestration.md`, and add the new files to the workspace ownership table.
-
-See `docs/superpowers/specs/2026-03-22-autoteam-design.md` for the full architecture spec.
-
----
-
-## Requirements
-
-- [Claude Code](https://claude.ai/code) CLI
-- An Anthropic API key with access to Claude Opus 4, Sonnet 4, and Haiku models
