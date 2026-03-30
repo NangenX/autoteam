@@ -39,6 +39,8 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/qa-reports/test-report.md` | QA Test |
 | `.autoteam/workspace/qa-reports/aggregated-report.md` | Orchestration |
 | `.autoteam/workspace/fix-instructions.md` | Orchestration |
+| `.autoteam/workspace/phase-summary.md` | Orchestration |
+| `.autoteam/workspace/qa-reports/lint-report.md` | Orchestration |
 | `.autoteam/workspace/escalation.md` | Implementation |
 
 ### Rules
@@ -56,12 +58,34 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 - QA reports with >100 findings: process top 10 CRITICAL first
 - Before each major step: summarize current state in ≤3 lines
 
+### Phase Summaries (Context Compression)
+At each phase boundary, Orchestration writes a compressed state to `.autoteam/workspace/phase-summary.md` (overwrite each time). This is the ONLY context carried forward — previous step details are NOT re-read unless specifically needed.
+
+```yaml
+phase: <completed phase name>
+requirement: <one-line summary>
+tech_stack: <language + framework>
+modules: [list of module IDs]
+implementation_status: complete | partial
+qa_round: <N>
+critical_findings: <count>
+resolved_findings: <count>
+pending_fixes: [FIX-IDs]
+next_action: <what happens next>
+```
+
+**Write phase-summary.md after:** Step 6 (Implementation), Step 8 (QA Aggregate), each QA fix loop iteration.
+**Read phase-summary.md before:** Step 7 (QA Pipeline), Step 9 (QA Loop Decision), Step 10 (Documentation).
+
 ### Step 1 — Input Validation
 Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] Invalid requirement`.
 
 ### Step 2 — Initialize Workspace
-- Create `.autoteam/workspace/`, `.autoteam/workspace/qa-reports/`, `.autoteam/workspace/discussion/`
-- Delete any existing `.yaml`, `.md` files (except templates starting with `# TEMPLATE`)
+- If `.autoteam/workspace/` exists and contains `.yaml` or `.md` files:
+  - Archive entire workspace to `.autoteam/runs/<YYYYMMDD-HHMMSS>/` (copy, not move)
+  - Print: `[Archive] Previous run archived → .autoteam/runs/<timestamp>/`
+- Create/ensure directories: `.autoteam/workspace/`, `.autoteam/workspace/qa-reports/`, `.autoteam/workspace/discussion/`
+- Delete any existing `.yaml`, `.md` files in workspace (except templates starting with `# TEMPLATE`)
 - Print: `[Step 0/8] ✓ Workspace initialized`
 
 ### Step 3 — Dispatch Product Planner
@@ -90,6 +114,28 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
 - Modules with `depends_on`: dispatch **serially** after dependencies complete
 - Each uses the **Implementation** definition (Section 5.3) in NORMAL MODE
 - Print: `[Step 4/8] ✓ Implementation complete → all modules written`
+- **Write phase-summary.md** with implementation status
+
+### Step 6.5 — Linter Pre-Gate (Deterministic Enforcement)
+Before dispatching QA agents, run deterministic linters on all generated code:
+
+1. **Detect language** from `adr.md` tech stack
+2. **Run linter** (skip if not installed — print warning):
+   - Python: `ruff check --output-format=json <source_dirs>` (or `flake8`)
+   - JavaScript/TypeScript: `npx eslint --format=json <source_dirs>` (or skip if no eslint config)
+   - Go: `go vet ./...`
+3. **Map Golden Rules to linter rules** (where possible):
+   - No bare print → ruff: T201; eslint: no-console
+   - No wildcard imports → ruff: F403; eslint: no-restricted-syntax
+   - No TODO/FIXME → ruff: FIX001-FIX004
+4. **Gate logic:**
+   - Linter errors (non-zero exit) → write findings to `.autoteam/workspace/qa-reports/lint-report.md`
+   - Include in fix-instructions.md as LINT-prefixed fixes (deterministic, highest priority)
+   - Dispatch Implementation in FIX MODE for lint fixes BEFORE entering QA pipeline
+   - Max 2 lint-fix rounds. After 2 with errors remaining → proceed to QA anyway
+5. **No linter available:** Print `[Lint] ⚠️ No linter detected for {language}. Skipping deterministic gate.` and proceed to Step 7
+
+- Print: `[Step 4.5/8] ✓ Linter pre-gate: {N} issues found, {M} auto-fixed` or `[Step 4.5/8] ✓ Linter pre-gate: clean`
 
 ### Step 7 — QA Pipeline
 Dispatch three QA subagents **in sequence** (not parallel):
@@ -113,6 +159,7 @@ fixes:
     fix: "Use parameterized queries"
 ```
 - Print: `[Step 6/8] ✓ QA aggregated → aggregated-report.md + fix-instructions.md`
+- **Write phase-summary.md** with QA results (critical count, pending fixes)
 
 ### Step 9 — QA Loop Decision
 **ALL_CLEAR=true** → go to Step 10
@@ -122,6 +169,7 @@ fixes:
 - If escalation → re-run Architecture with escalation as input
 - Dispatch Implementation in **FIX MODE** (Section 5.3)
 - Re-run QA Pipeline (Step 7) + re-aggregate (Step 8)
+- **Update phase-summary.md** after each fix iteration
 - **Max 3 QA loops.** After 3 with CRITICAL remaining → stop with `[FAILED]`
 
 ### Step 10 — Documentation
@@ -129,6 +177,22 @@ fixes:
 - Wait for `docs/README.md` (minimum 10 lines)
 - If <10 lines: retry once with model `sonnet`
 - Print: `[Step 7/8] ✓ Documentation complete → docs/ written`
+
+### Step 10.5 — Git Integration
+After all code and docs are written:
+1. Create branch: `autoteam/<YYYYMMDD>-<slug>` (slug = first 3 words of requirement, kebab-case)
+2. Stage all generated/modified files (exclude `.autoteam/workspace/`, `.autoteam/runs/`)
+3. Commit with message:
+   ```
+   feat: <one-line requirement summary>
+
+   AutoTeam pipeline — QA passed in {N} round(s)
+   Agents: Product Planner → Architecture → Implementation → QA×3 → Docs
+   ```
+4. Print: `[Step 7.5/8] ✓ Changes committed on branch autoteam/<branch-name>`
+5. Do NOT push or create PR (user decides next step)
+
+**Skip conditions:** `git` not available, not a git repo, or user requirement says "don't commit"
 
 ### Step 11 — Final Summary
 Print success or failure (see Section 6).
@@ -476,6 +540,7 @@ Passing: N | Failing: N
   - [list every file created or modified]
 📊 QA: Passed in <N> round(s)
 📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md]
+🔀 Branch: autoteam/<branch-name> (run `git push -u origin <branch>` to create PR)
 
 Status: ✅ SUCCESS
 ```
