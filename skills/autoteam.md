@@ -7,6 +7,8 @@ platform: copilot-cli
 
 # AutoTeam — Self-Contained Skill for Copilot CLI
 
+> Reference template only. GitHub Copilot CLI does **not** auto-discover `skills\`. For repo-native AutoTeam usage, put entry rules in `.github/copilot-instructions.md` and pipeline rules in `.github/instructions/autoteam.instructions.md`.
+
 ## Section 1: Activation
 
 ### How to Invoke

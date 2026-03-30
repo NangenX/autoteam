@@ -5,7 +5,7 @@ Autonomous AI development team. 8 specialized agents collaborate to analyze, des
 ## Quick Start
 
 **Claude Code:** `/autoteam "your requirement here"`
-**Copilot CLI:** "Run autoteam with requirement: your requirement here"
+**Copilot CLI:** "Use AutoTeam to implement: your requirement here" (repo-native via `.github/copilot-instructions.md`)
 
 ## Team (8 agents, 3 model tiers)
 
@@ -30,14 +30,15 @@ All inter-agent files: `.autoteam/workspace/`
 Run archives: `.autoteam/runs/<timestamp>/`
 File ownership: see skill files Section 2
 
-## Skill Files
+## Entry Files
 
 | Platform | File |
 |---|---|
 | Claude Code | `.claude/skills/autoteam.md` |
-| Copilot CLI | `skills/autoteam.md` |
+| Copilot CLI (repo-native) | `.github/copilot-instructions.md` + `.github/instructions/autoteam.instructions.md` |
+| Copilot reference template | `skills/autoteam.md` |
 
-All agent definitions, pipeline steps, QA rules, and dispatch protocols live in the skill files. This file is an index only.
+Claude Code reads its skill directly. Copilot CLI should use the `.github/` instruction files; `skills/autoteam.md` is the extended template/reference, not the auto-discovered entry point. This file is an index only.
 
 ## Harness Engineering Alignment
 
