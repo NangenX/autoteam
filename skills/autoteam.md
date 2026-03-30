@@ -1,7 +1,7 @@
 ---
 name: autoteam
 description: "Autonomous AI development team for Copilot CLI. Triggers a full 8-agent pipeline (Product Planner → Architecture → Implementation → QA × 3 → Documentation) that analyzes, designs, implements, tests, and documents your requirement."
-version: 2.0
+version: 3.0
 platform: copilot-cli
 ---
 

@@ -22,7 +22,7 @@ Autonomous AI development team. 8 specialized agents collaborate to analyze, des
 
 ## Pipeline
 
-Requirement → Product Planner → Architecture → Discussion (≤3 rounds) → Implementation → Linter Pre-Gate → QA×3 → Fix Loop (≤3 rounds) → Documentation → Git Commit → Done
+Requirement → Product Planner → Architecture → Discussion (≤3 rounds) → Implementation → Multi-Gate Check → QA Council → Fix Loop (≤3 rounds) → Documentation → Work Chunk → Git Commit → Done
 
 ## Workspace
 
@@ -44,7 +44,11 @@ All agent definitions, pipeline steps, QA rules, and dispatch protocols live in 
 | Design | Principle | Source |
 |---|---|---|
 | `.autoteam/workspace/` file protocol | Repo as Source of Truth | Harness Engineering |
-| Linter Pre-Gate (ruff/eslint/go vet) | Mechanical Enforcement | Harness Engineering |
+| Multi-Gate Check (Gates A-F) | Mechanical Enforcement | OpenAI Harness |
+| Ratchet mechanism (brownfield) | Ratchet Gates | OpenAI Harness |
+| Council vote (2/3 multi-model) | Agent-to-Agent Review | OpenAI Harness |
+| Work Chunks evidence protocol | Evidence-Based Chunks | OpenAI Harness |
+| AGENTS.md auto-generation | Progressive Disclosure | OpenAI Harness |
 | Golden Rules + QA loop | Entropy Management | Harness Engineering |
 | Phase Summaries + STEP 0: ORIENT | Agent Readability | Harness Engineering |
 | Git branch + commit integration | Throughput → Merge | Harness Engineering |

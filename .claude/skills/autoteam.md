@@ -1,7 +1,7 @@
 ---
 name: autoteam
 description: "Autonomous AI development team. Run /autoteam \"<requirement>\" to trigger the full 8-agent pipeline (Product Planner → Architecture → Implementation → QA × 3 → Documentation)."
-version: 2.0
+version: 3.0
 ---
 
 # AutoTeam — Self-Contained Skill for Claude Code
