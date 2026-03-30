@@ -5,5 +5,15 @@
 .autoteam/workspace/
 .autoteam/runs/
 
+# Legacy workspace (superseded by skill files)
+.openclaw/
+
+# Python
+__pycache__/
+*.pyc
+
+# Run logs
+runs/*/
+
 # macOS
 .DS_Store
