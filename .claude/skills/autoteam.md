@@ -41,7 +41,8 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/fix-instructions.md` | Orchestration |
 | `.autoteam/workspace/sprint-contract.yaml` | Orchestration |
 | `.autoteam/workspace/phase-summary.md` | Orchestration |
-| `.autoteam/workspace/qa-reports/lint-report.md` | Orchestration |
+| `.autoteam/workspace/qa-reports/gate-report.md` | Orchestration |
+| `.autoteam/workspace/qa-reports/ratchet-baseline.txt` | Orchestration |
 | `.autoteam/workspace/escalation.md` | Implementation |
 
 ### Rules
@@ -153,26 +154,51 @@ modules:
 - Print: `[Step 4/8] ✓ Implementation complete → all modules written`
 - **Write phase-summary.md** with implementation status
 
-### Step 6.5 — Linter Pre-Gate (Deterministic Enforcement)
-Before dispatching QA agents, run deterministic linters on all generated code:
+### Step 6.5 — Multi-Gate Check (Deterministic Enforcement)
+Before dispatching QA agents, run all available deterministic gates on generated code:
 
 1. **Detect language** from `adr.md` tech stack
-2. **Run linter** (skip if not installed — print warning):
-   - Python: `ruff check --output-format=json <source_dirs>` (or `flake8`)
-   - JavaScript/TypeScript: `npx eslint --format=json <source_dirs>` (or skip if no eslint config)
-   - Go: `go vet ./...`
-3. **Map Golden Rules to linter rules** (where possible):
-   - No bare print → ruff: T201; eslint: no-console
-   - No wildcard imports → ruff: F403; eslint: no-restricted-syntax
-   - No TODO/FIXME → ruff: FIX001-FIX004
-4. **Gate logic:**
-   - Linter errors (non-zero exit) → write findings to `.autoteam/workspace/qa-reports/lint-report.md`
-   - Include in fix-instructions.md as LINT-prefixed fixes (deterministic, highest priority)
-   - Dispatch Implementation in FIX MODE for lint fixes BEFORE entering QA pipeline
-   - Max 2 lint-fix rounds. After 2 with errors remaining → proceed to QA anyway
-5. **No linter available:** Print `[Lint] ⚠️ No linter detected for {language}. Skipping deterministic gate.` and proceed to Step 7
+2. **Ratchet detection:** If lint on pre-existing code (before Implementation) found violations > 0, OR requirement contains "brownfield"/"legacy"/"refactor" → activate ratchet mode. Record `baseline_violations` count.
+3. **Run gates in order** (skip any whose tooling is not detected):
 
-- Print: `[Step 4.5/8] ✓ Linter pre-gate: {N} issues found, {M} auto-fixed` or `[Step 4.5/8] ✓ Linter pre-gate: clean`
+| Gate | Name | Tool | Detection |
+|------|------|------|-----------|
+| A | Formatting + Lint | ruff/eslint/go-vet | Language detected |
+| B | Import Boundaries | import-linter | `pyproject.toml` has `[tool.importlinter]` |
+| C | Structural Rules | ast-grep | `sgconfig.yml` exists in project |
+| D | Snapshot Testing | pytest --snapshot | `__snapshots__/` directory exists |
+| E | Golden Outputs | `diff` against committed goldens | `tests/goldens/` directory exists |
+| F | Numerical Equiv. | tolerance check (numpy `allclose` or float compare) | `tests/numerical/` directory exists |
+
+4. **Gate logic:**
+   - Each gate returns PASS, FAIL, or SKIPPED (no config/tool)
+   - **Ratchet mode (Gate A only):** PASS if `current_violations <= baseline_violations`
+   - **Normal mode:** PASS requires zero violations
+   - Any FAIL (non-ratchet) → write findings to `.autoteam/workspace/qa-reports/gate-report.md`
+   - Include in fix-instructions.md as GATE-prefixed fixes (deterministic, highest priority)
+   - Dispatch Implementation in FIX MODE for gate fixes BEFORE entering QA pipeline
+   - Max 2 gate-fix rounds. After 2 with errors remaining → proceed to QA anyway
+   - Ratchet results recorded in `.autoteam/workspace/qa-reports/ratchet-baseline.txt`:
+     ```
+     baseline: <N>
+     current: <N>
+     delta: <+/- N>
+     status: PASS/FAIL
+     ```
+5. **No tools available:** Print `[Multi-Gate] ⚠️ No gate tools detected for {language}. Skipping deterministic gates.` and proceed to Step 7
+
+- Print:
+  ```
+  [Step 4.5/8] Multi-Gate Check
+    Gate A (Lint):      ✅ PASS | ⏭️ SKIPPED | ❌ FAIL
+    Gate B (Imports):   ✅ PASS | ⏭️ SKIPPED (no import-linter config) | ❌ FAIL
+    Gate C (AST Rules): ✅ PASS | ⏭️ SKIPPED (no sgconfig.yml) | ❌ FAIL
+    Gate D (Snapshots): ✅ PASS | ⏭️ SKIPPED (no __snapshots__/) | ❌ FAIL
+    Gate E (Goldens):   ✅ PASS | ⏭️ SKIPPED (no tests/goldens/) | ❌ FAIL
+    Gate F (Numerical): ✅ PASS | ⏭️ SKIPPED (no tests/numerical/) | ❌ FAIL
+    Ratchet: OFF | ON (baseline: N, current: N, delta: N)
+    Result: N/N active gates PASS
+  ```
 
 ### Step 7 — QA Pipeline
 Dispatch three QA subagents **in sequence** (not parallel):
@@ -644,7 +670,8 @@ _Adapted from Anthropic's harness design principle: "find the simplest solution 
 |-----------|----------------------|--------------------------|
 | Discussion Node 1 | Architecture may miss acceptance criteria | Skip rate >90% across runs |
 | Sprint Contract | Implementation may build the wrong thing | QA round-1 pass rate >90% without contract |
-| Linter Pre-Gate | LLM misses mechanical violations | Never — deterministic checks are always cheaper |
+| Multi-Gate Check | LLM misses mechanical violations | Never — deterministic checks are always cheaper |
+| Ratchet mode | Pre-existing code has violations | Drop when project reaches zero baseline violations |
 | 3 separate QA agents | Specialized focus catches more | If one agent consistently finds zero issues |
 | FIX MODE minimal-change rule | Implementation over-refactors during fixes | If Implementation shows discipline without constraint |
 
