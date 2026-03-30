@@ -255,7 +255,7 @@ fixes:
 
 ### Step 10 — Documentation
 - Dispatch Documentation agent (Section 5.7)
-- Wait for `docs/README.md` (minimum 10 lines)
+- Wait for `docs/README.md` (minimum 10 lines) and `AGENTS.md` (project root)
 - Print: `[Step 7/8] ✓ Documentation complete`
 
 ### Step 10.5 — Git Integration
@@ -562,7 +562,7 @@ If the project is a web application (has api_endpoints or serves HTML):
 
 **Role:** Write clear documentation for the delivered project.
 **Input:** All code + `requirement-card.yaml` + `adr.md` + `interface-contracts.yaml`
-**Output:** `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/API.md` (if API endpoints)
+**Output:** `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/API.md` (if API endpoints), `AGENTS.md` (project root)
 
 **docs/README.md:** Description, Requirements, Installation (fresh machine), Quick Start (copy-pasteable), Features, Configuration (all env vars)
 
@@ -571,6 +571,16 @@ If the project is a web application (has api_endpoints or serves HTML):
 **docs/ARCHITECTURE.md:** Overview, Tech Stack table, Project Structure, Key Decisions (plain language), Data Flow, How to Extend
 
 **Rules:** Write for developer with zero context; all examples copy-pasteable; no "TBD"; min 10 lines per file; accurate not aspirational
+
+**AGENTS.md** (always generated, project root):
+- Project description (1 paragraph)
+- Harness section: detected check command (`just check`, `npm test`, `pytest`, `make test` — infer from project files), lint command, test command
+- Structure section: key directories and purposes (max 15 lines)
+- Rules section: key constraints from `adr.md` (architectural decisions, import boundaries)
+- How to Contribute: branch → change → run harness → commit with evidence
+- QA Expectations: security (OWASP), quality (complexity <15, no duplication >10 lines), tests (all AC covered)
+
+**Harness command detection order:** `justfile` → `just check` | `package.json` with `test` script → `npm test` | `pyproject.toml` → `pytest` | `Makefile` → `make check` | fallback → `echo "Configure your check command"`
 
 ---
 
@@ -585,7 +595,7 @@ If the project is a web application (has api_endpoints or serves HTML):
 📁 Output:
   - [list every file created/modified]
 📊 QA: Passed in <N> round(s)
-📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md]
+📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md], AGENTS.md
 🔀 Branch: autoteam/<name> (run `git push -u origin <branch>` to create PR)
 
 Status: ✅ SUCCESS

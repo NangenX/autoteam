@@ -251,7 +251,7 @@ fixes:
 
 ### Step 10 — Documentation
 - Dispatch **Documentation** subagent (Section 5.7)
-- Wait for `docs/README.md` (minimum 10 lines)
+- Wait for `docs/README.md` (minimum 10 lines) and `AGENTS.md` (project root)
 - If <10 lines: retry once with model `sonnet`
 - Print: `[Step 7/8] ✓ Documentation complete → docs/ written`
 
@@ -623,7 +623,7 @@ If the project is a web application (has api_endpoints or serves HTML):
 
 **Role:** Write clear, accurate documentation for the delivered project.
 **Input:** All project code + `requirement-card.yaml` + `adr.md` + `interface-contracts.yaml`
-**Output:** `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/API.md` (if API endpoints exist)
+**Output:** `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/API.md` (if API endpoints exist), `AGENTS.md` (project root)
 
 **docs/README.md** (required sections):
 - Project description (1–3 sentences)
@@ -652,6 +652,16 @@ If the project is a web application (has api_endpoints or serves HTML):
 - Minimum 10 meaningful lines per file
 - Accurate, not aspirational — document what code actually does
 
+**AGENTS.md** (always generated, project root):
+- Project description (1 paragraph)
+- Harness section: detected check command (`just check`, `npm test`, `pytest`, `make test` — infer from project files), lint command, test command
+- Structure section: key directories and purposes (max 15 lines)
+- Rules section: key constraints from `adr.md` (architectural decisions, import boundaries)
+- How to Contribute: branch → change → run harness → commit with evidence
+- QA Expectations: security (OWASP), quality (complexity <15, no duplication >10 lines), tests (all AC covered)
+
+**Harness command detection order:** `justfile` → `just check` | `package.json` with `test` script → `npm test` | `pyproject.toml` → `pytest` | `Makefile` → `make check` | fallback → `echo "Configure your check command"`
+
 ---
 
 ## Section 6: Final Output
@@ -665,7 +675,7 @@ If the project is a web application (has api_endpoints or serves HTML):
 📁 Output:
   - [list every file created or modified]
 📊 QA: Passed in <N> round(s)
-📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md]
+📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md], AGENTS.md
 🔀 Branch: autoteam/<branch-name> (run `git push -u origin <branch>` to create PR)
 
 Status: ✅ SUCCESS
