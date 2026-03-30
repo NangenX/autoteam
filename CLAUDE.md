@@ -36,20 +36,20 @@ Type this command in Claude Code. The Orchestration Agent takes over, runs the f
 
 ## Workspace Protocol
 
-All inter-agent communication happens through files in `.openclaw/workspace/`. No agent may write to a file it does not own. Orchestration mediates all coordination.
+All inter-agent communication happens through files in `.autoteam/workspace/`. No agent may write to a file it does not own. Orchestration mediates all coordination.
 
 | File | Owner |
 |---|---|
-| `.openclaw/workspace/requirement-card.yaml` | Product Planner |
-| `.openclaw/workspace/adr.md` | Architecture |
-| `.openclaw/workspace/interface-contracts.yaml` | Architecture |
-| `.openclaw/workspace/discussion/*.md` | Orchestration |
-| `.openclaw/workspace/qa-reports/security-report.md` | QA Security |
-| `.openclaw/workspace/qa-reports/quality-report.md` | QA Quality |
-| `.openclaw/workspace/qa-reports/test-report.md` | QA Test |
-| `.openclaw/workspace/qa-reports/aggregated-report.md` | Orchestration (QA Aggregator role) |
-| `.openclaw/workspace/fix-instructions.md` | Orchestration (QA Aggregator role) |
-| `.openclaw/workspace/escalation.md` | Implementation (architectural escalation only) |
+| `.autoteam/workspace/requirement-card.yaml` | Product Planner |
+| `.autoteam/workspace/adr.md` | Architecture |
+| `.autoteam/workspace/interface-contracts.yaml` | Architecture |
+| `.autoteam/workspace/discussion/*.md` | Orchestration |
+| `.autoteam/workspace/qa-reports/security-report.md` | QA Security |
+| `.autoteam/workspace/qa-reports/quality-report.md` | QA Quality |
+| `.autoteam/workspace/qa-reports/test-report.md` | QA Test |
+| `.autoteam/workspace/qa-reports/aggregated-report.md` | Orchestration (QA Aggregator role) |
+| `.autoteam/workspace/fix-instructions.md` | Orchestration (QA Aggregator role) |
+| `.autoteam/workspace/escalation.md` | Implementation (architectural escalation only) |
 
 ## Key Constraints
 
@@ -63,7 +63,7 @@ The QA → fix → QA cycle runs a maximum of **3 rounds**. After 3 rounds, Orch
 The Architecture discussion phase runs a maximum of **3 rounds**. After 3 rounds, Orchestration makes the final call and the pipeline advances.
 
 ### Escalation Path
-If Implementation discovers that a QA fix requires an architectural change, it writes `.openclaw/workspace/escalation.md` describing the problem. Orchestration decides whether to re-engage Architecture or override the constraint.
+If Implementation discovers that a QA fix requires an architectural change, it writes `.autoteam/workspace/escalation.md` describing the problem. Orchestration decides whether to re-engage Architecture or override the constraint.
 
 ## Model Assignments
 
@@ -80,20 +80,27 @@ Opus is used where broad reasoning and judgment are required. Sonnet handles the
 - Bash tool permissions are scoped to the project directory. No agent may execute shell commands outside the project root.
 - No agent may execute generated code during the pipeline run (no `eval`, no spawning the user's own source as a subprocess).
 - No agent may make network requests to external services during the pipeline run.
-- Secrets and credentials must never be written to `.openclaw/workspace/` files.
+- Secrets and credentials must never be written to `.autoteam/workspace/` files.
 - QA Security checks all output against OWASP Top 10 before the pipeline completes.
 
-## Agent Definition Files
+## Skill Files (Self-Contained)
 
-Each agent's full system prompt and behavioral rules live in `.openclaw/agents/`. These files are loaded automatically by Claude Code via `.openclaw/settings.json`.
+All agent definitions are embedded directly in the skill files. No external agent definition files are needed.
 
-```
-.openclaw/agents/orchestration.md
-.openclaw/agents/product-planner.md
-.openclaw/agents/architecture.md
-.openclaw/agents/implementation.md
-.openclaw/agents/qa-security.md
-.openclaw/agents/qa-quality.md
-.openclaw/agents/qa-test.md
-.openclaw/agents/documentation.md
-```
+| Platform | Skill File | Invocation |
+|---|---|---|
+| Claude Code | `.claude/skills/autoteam.md` | `/autoteam "requirement"` |
+| Copilot CLI | `skills/autoteam.md` | Natural language: "run autoteam for: ..." |
+
+## Harness Engineering Alignment
+
+| AutoTeam Design | Harness Principle |
+|---|---|
+| `.autoteam/workspace/` file protocol | Repo as Source of Truth |
+| Self-contained skill with embedded agent defs | Map not Manual (progressive disclosure) |
+| QA reports with Fix field + fix-instructions.md | Mechanical Enforcement (lint error = fix instruction) |
+| Minimal-change rule in FIX MODE | Backpressure over Prescription |
+| 3-round loop limits | Steer with Signals, not Scripts |
+| Golden Rules in QA Quality (mechanical CRITICAL checks) | Entropy Management (golden rules encoded in repo) |
+| STEP 0: ORIENT in Implementation | Fresh Context (get bearings every invocation) |
+| Context Management Rules in Orchestration | Agent Readability (context rot defense) |

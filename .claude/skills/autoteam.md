@@ -1,125 +1,161 @@
 ---
 name: autoteam
-description: "Autonomous AI development team. Run /autoteam \"<requirement>\" to have the full 7-agent team (Product Planner → Architecture → Implementation → QA × 3 → Documentation) analyze, design, implement and document your requirement."
-version: 1.0
+description: "Autonomous AI development team. Run /autoteam \"<requirement>\" to trigger the full 8-agent pipeline (Product Planner → Architecture → Implementation → QA × 3 → Documentation)."
+version: 2.0
 ---
 
-# AutoTeam Skill
+# AutoTeam — Self-Contained Skill for Claude Code
 
 ## Section 1: Activation
 
-When this skill is invoked, the current Claude Code session becomes the **Orchestration Agent**. The user's requirement is everything after `/autoteam `.
+When this skill is invoked, the current Claude Code session becomes the **Orchestration Agent**.
 
-**Extract the requirement now:**
+**Extract the requirement:** Strip `/autoteam` from the triggering message. Trim whitespace. The remainder is `<REQUIREMENT>`.
 
-Look at the message that triggered this skill. Strip the leading `/autoteam` (and any leading slash variant). Trim whitespace. The remainder is `<REQUIREMENT>`.
-
-If `<REQUIREMENT>` is empty or missing, print exactly:
-
+If `<REQUIREMENT>` is empty or nonsensical, print:
 ```
 ❌ Usage: /autoteam "your requirement"
 Example: /autoteam "build a REST API for task management"
 ```
-
-Then stop — do not proceed further.
-
-If `<REQUIREMENT>` is present, continue to Section 2.
+Then stop.
 
 ---
 
-## Section 2: Adopt Orchestration Role
+## Section 2: Workspace Protocol
 
-You will adopt the Orchestration Agent role. The full role definition will be loaded in the next section.
+All inter-agent communication happens through files in `.autoteam/workspace/`. No agent may write to a file it does not own.
+
+### File Ownership
+
+| File | Owner |
+|------|-------|
+| `.autoteam/workspace/requirement-card.yaml` | Product Planner |
+| `.autoteam/workspace/adr.md` | Architecture |
+| `.autoteam/workspace/interface-contracts.yaml` | Architecture |
+| `.autoteam/workspace/discussion/round-N-*.md` | Orchestration |
+| `.autoteam/workspace/discussion/consensus.md` | Orchestration |
+| `.autoteam/workspace/qa-reports/security-report.md` | QA Security |
+| `.autoteam/workspace/qa-reports/quality-report.md` | QA Quality |
+| `.autoteam/workspace/qa-reports/test-report.md` | QA Test |
+| `.autoteam/workspace/qa-reports/aggregated-report.md` | Orchestration |
+| `.autoteam/workspace/fix-instructions.md` | Orchestration |
+| `.autoteam/workspace/escalation.md` | Implementation |
+
+### Rules
+- Write atomically — no partial files
+- All timestamps: ISO 8601
+- Template files (starting with `# TEMPLATE`) are never deleted
 
 ---
 
-## Section 3: Load Context Files
+## Section 3: Pipeline Execution
 
-Before starting the pipeline, read all three of these files in parallel:
+### Context Management Rules
+- Files >500 lines: use Grep to extract relevant sections, not full Read
+- Tool output >1000 lines: capture first 50 + last 50 lines only
+- QA reports with >100 findings: process top 10 CRITICAL first
+- Before each major step: summarize current state in ≤3 lines
 
-1. `.openclaw/agents/orchestration.md` — your own role definition and full pipeline spec
-2. `.openclaw/workspace/README.md` — workspace protocol, file locations, and conventions
-3. `CLAUDE.md` — project-level context. If `CLAUDE.md` does not exist, skip it and continue.
+### Step 1 — Input Validation
+Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] Invalid requirement`.
 
-Do NOT read other agent definition files at this point. You will provide each agent's role definition inline when you dispatch them as subagents (see Section 6).
+### Step 2 — Initialize Workspace
+- Create `.autoteam/workspace/`, `.autoteam/workspace/qa-reports/`, `.autoteam/workspace/discussion/`
+- Delete any existing `.yaml`, `.md` files (except templates starting with `# TEMPLATE`)
+- Print: `[Step 0/8] ✓ Workspace initialized`
 
----
+### Step 3 — Dispatch Product Planner
+- Dispatch subagent with `<REQUIREMENT>` and the **Product Planner** definition (Section 5.1)
+- Wait for `.autoteam/workspace/requirement-card.yaml`
+- Retry once on failure. Second failure → stop with error
+- Print: `[Step 1/8] ✓ Product Planner complete → requirement-card.yaml`
 
-## Section 4: Initialize Workspace
+### Step 4 — Dispatch Architecture
+- Dispatch subagent with the **Architecture** definition (Section 5.2)
+- Wait for `.autoteam/workspace/adr.md` AND `.autoteam/workspace/interface-contracts.yaml`
+- Retry up to 2 additional times on failure (3 total)
+- Print: `[Step 2/8] ✓ Architecture complete → adr.md + interface-contracts.yaml`
 
-Clear the workspace for a fresh run. Perform the following deletions if the files exist. Skip silently if a file is absent. Do NOT delete files that begin with `# TEMPLATE` — those are template files and must be preserved.
+### Step 5 — Discussion Node 1 (Architecture vs Product Planner)
+- Read both `adr.md` and `requirement-card.yaml`
+- If architecture doesn't address all acceptance_criteria → enter discussion (max 3 rounds)
+- Each round: Architecture writes `round-N-arch.md`, Product Planner writes `round-N-planner.md`
+- Exit when `APPROVED` appears, or after round 3 (Orchestration writes `consensus.md` with binding decision)
+- If no contradiction: skip entirely
+- Print: `[Step 3/8] ✓ Architecture-Planner alignment verified`
 
-**Delete these files if they exist (and are not template files):**
-- `.openclaw/workspace/requirement-card.yaml`
-- `.openclaw/workspace/adr.md`
-- `.openclaw/workspace/interface-contracts.yaml`
-- `.openclaw/workspace/fix-instructions.md`
-- `.openclaw/workspace/escalation.md`
+### Step 6 — Dispatch Implementation
+- Read `modules` from `requirement-card.yaml`
+- Modules with no `depends_on`: dispatch as **parallel** subagents
+- Modules with `depends_on`: dispatch **serially** after dependencies complete
+- Each uses the **Implementation** definition (Section 5.3) in NORMAL MODE
+- Print: `[Step 4/8] ✓ Implementation complete → all modules written`
 
-**Delete all files inside these directories (leave the directories themselves intact):**
-- `.openclaw/workspace/discussion/` — delete every file inside
-- `.openclaw/workspace/qa-reports/` — delete every file inside EXCEPT `aggregated-report.md` if it is a template file (starts with `# TEMPLATE`)
+### Step 7 — QA Pipeline
+Dispatch three QA subagents **in sequence** (not parallel):
+1. **QA Security** (Section 5.4) → `security-report.md`
+2. **QA Quality** (Section 5.5) → `quality-report.md`
+3. **QA Test** (Section 5.6) → `test-report.md`
+- Print: `[Step 5/8] ✓ QA Pipeline complete → 3 reports written`
 
-**How to identify a template file:** Read the first line of the file. If it is `# TEMPLATE`, do not delete it.
-
-After cleanup, print:
-
+### Step 8 — Aggregate QA Results
+- Merge all three reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
+- Prefix IDs: SEC-, QUA-, TST-
+- Set `ALL_CLEAR: true` only if zero CRITICAL findings
+- Write `.autoteam/workspace/fix-instructions.md` listing every CRITICAL as structured fix task:
+```yaml
+fixes:
+  - id: SEC-001
+    file: src/auth.py
+    function: verify_token
+    lines: "45-67"
+    issue: "SQL injection via unsanitized input"
+    fix: "Use parameterized queries"
 ```
-[AutoTeam] 🚀 Starting pipeline for: "<REQUIREMENT>"
-```
+- Print: `[Step 6/8] ✓ QA aggregated → aggregated-report.md + fix-instructions.md`
 
-(Replace `<REQUIREMENT>` with the actual requirement text extracted in Section 1.)
+### Step 9 — QA Loop Decision
+**ALL_CLEAR=true** → go to Step 10
 
----
+**ALL_CLEAR=false** →
+- Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
+- If escalation → re-run Architecture with escalation as input
+- Dispatch Implementation in **FIX MODE** (Section 5.3)
+- Re-run QA Pipeline (Step 7) + re-aggregate (Step 8)
+- **Max 3 QA loops.** After 3 with CRITICAL remaining → stop with `[FAILED]`
 
-## Section 5: Execute Pipeline
+### Step 10 — Documentation
+- Dispatch **Documentation** subagent (Section 5.7)
+- Wait for `docs/README.md` (minimum 10 lines)
+- If <10 lines: retry once with model `sonnet`
+- Print: `[Step 7/8] ✓ Documentation complete → docs/ written`
 
-Run the full orchestration pipeline as defined in `.openclaw/agents/orchestration.md`. The canonical pipeline order is:
-
-1. **Product Planner** → produces `.openclaw/workspace/requirement-card.yaml`
-2. **Architecture** (+ Discussion Node 1 if conflict or ambiguity detected) → produces `.openclaw/workspace/adr.md` and `.openclaw/workspace/interface-contracts.yaml`
-3. **Implementation** (run parallel subagents per module where the architecture permits) → produces all code files in the project
-4. **QA — three parallel subagents:**
-   - QA Security → `.openclaw/workspace/qa-reports/security-report.md`
-   - QA Quality → `.openclaw/workspace/qa-reports/quality-report.md`
-   - QA Test → `.openclaw/workspace/qa-reports/test-report.md`
-5. **QA Aggregation** (you, the Orchestration Agent, aggregate the three reports) → `.openclaw/workspace/qa-reports/aggregated-report.md` and `.openclaw/workspace/fix-instructions.md`
-6. **QA Fix Loop** — maximum 3 rounds:
-   - If aggregated report shows failures: dispatch Implementation agent with `fix-instructions.md` as input, then re-run QA (step 4–5)
-   - Invoke Discussion Node 2 at the start of each fix round if issues are architectural
-   - If all three QA reports pass: exit loop
-   - If still failing after round 3: write `.openclaw/workspace/escalation.md` and go to the failure output in Section 7
-7. **Documentation** → produces `docs/README.md` and any additional docs files
-
-Follow all pipeline rules defined in `orchestration.md` precisely — including gating conditions (do not proceed to step N+1 until step N produces valid output), discussion node trigger conditions, and escalation rules.
+### Step 11 — Final Summary
+Print success or failure (see Section 6).
 
 ---
 
-## Section 6: Dispatching Subagents
+## Section 4: Subagent Dispatch Protocol
 
-When dispatching any subagent, use the Agent tool and provide ALL necessary context inline in the subagent prompt. Do NOT instruct subagents to read their own agent definition files from disk — you must include the agent role definition content directly in the prompt you send them.
-
-**Structure every subagent prompt as follows:**
+When dispatching any subagent, provide ALL context inline:
 
 ```
 ## Your Role
-<paste the full contents of the agent's .openclaw/agents/<name>.md file here>
-
-## Workspace Protocol
-<paste the full contents of .openclaw/workspace/README.md here>
+<paste the full agent definition from Section 5.X>
 
 ## Your Task
-<specific task description for this pipeline step>
+<specific task description>
 
 ## Input Files
-Read the following files to get your inputs:
-- <list of absolute file paths the agent needs to read>
+Read these files for your inputs:
+- <list .autoteam/workspace/ file paths>
 
 ## Required Output
-<exact file path(s) to write, and the schema/format expected>
+Write to: <exact file path(s)>
+Format: <expected schema>
 ```
 
-**Model assignment — use the `model` parameter when invoking each subagent:**
+### Model Assignments
 
 | Agent | Model |
 |---|---|
@@ -131,40 +167,323 @@ Read the following files to get your inputs:
 | QA Test | `sonnet` |
 | Documentation | `haiku` |
 
-**Parallel dispatch:** When the pipeline allows parallel execution (QA's three agents, and independent implementation modules), dispatch all parallelizable subagents in a single response using multiple simultaneous Agent tool calls.
+**Parallel dispatch:** When pipeline allows it (independent Implementation modules, QA agents if desired), dispatch multiple subagents simultaneously.
 
-**After each subagent returns:** Verify that the expected output file(s) exist and are non-empty before proceeding to the next pipeline stage. If an output file is missing or empty, retry the subagent once with an explicit note about what was missing. If it fails again, go to the failure output in Section 7.
+**After each subagent:** Verify expected output files exist and are non-empty. Missing → retry once. Second failure → go to failure output.
 
 ---
 
-## Section 7: Final Output
+## Section 5: Agent Definitions
 
-### On success
+### 5.1 Product Planner Agent
 
-When all pipeline stages complete and QA passes, print:
+**Role:** Transform raw requirement into structured requirement card.
+**Input:** Raw requirement text (provided inline by Orchestration)
+**Output:** `.autoteam/workspace/requirement-card.yaml`
 
+**Process:**
+1. Read requirement. Identify: core deliverable, users, explicit tech constraints, implicit constraints
+2. Derive acceptance criteria — each must be independently testable, specific, behavioral (observable outcomes, not implementation details)
+3. Define out-of-scope — everything NOT required (features, NFRs, deployment, CI/CD, frontend if API-only)
+4. List tech constraints — only user-stated ones. If none: `tech_constraints: []`
+5. Write `requirement-card.yaml`:
+
+```yaml
+requirement: |
+  [faithful paraphrase of user requirement]
+acceptance_criteria:
+  - id: AC-001
+    description: "[testable criterion]"
+    testable: true
+out_of_scope:
+  - "[not required item]"
+tech_constraints:
+  - "[user-stated constraint]"
+modules: []  # Architecture fills this in
 ```
-[AutoTeam] ✅ Pipeline Complete
 
-📋 Requirement: <title field from .openclaw/workspace/requirement-card.yaml>
-📐 Architecture: <tech stack summary from .openclaw/workspace/adr.md — one line>
-📁 Output: <bulleted list of every file created or modified during the run>
+**Rules:**
+- NO technology choices (that's Architecture's job)
+- One criterion per entry; 3–8 criteria typical; >10 means over-specifying
+- Do not invent requirements not stated by user
+
+**Discussion Node 1 (review mode):**
+- Read `round-N-arch.md`, re-read acceptance criteria
+- For each unmet criterion: write OBJECTION with specific explanation
+- If all satisfied: write `APPROVED` on its own line
+- Output to `.autoteam/workspace/discussion/round-N-planner.md`
+
+---
+
+### 5.2 Architecture Agent
+
+**Role:** Design tech architecture, select stack, define interface contracts.
+**Input:** `.autoteam/workspace/requirement-card.yaml`
+**Output:** `.autoteam/workspace/adr.md`, `.autoteam/workspace/interface-contracts.yaml`, updated `modules` in requirement-card.yaml
+
+**Process:**
+1. Read requirement-card.yaml fully (criteria, constraints, out-of-scope)
+2. Select tech stack (YAGNI: simplest that satisfies all criteria)
+   - Fewer dependencies > more
+   - No speculative additions (no caching/queues/microservices unless required)
+   - Security by default on user-data endpoints
+3. Break into modules with `id`, `description`, `depends_on`, `output_files`
+4. Design interfaces — precise enough that Implementation writes code without decisions:
+   - Request/response shapes, field names/types/validation
+   - Error responses with status codes
+   - Auth requirements per endpoint
+   - No "TBD" values — make concrete decisions
+5. Write `adr.md` (Context, Tech Stack table, Module Breakdown, Key Decisions with rationale, Risks, Out of Scope)
+6. Write `interface-contracts.yaml`:
+
+```yaml
+api_endpoints:
+  - id: EP-001
+    method: POST
+    path: /auth/login
+    description: "Authenticate user, return JWT"
+    authenticated: false
+    request:
+      content_type: application/json
+      body:
+        username: {type: string, required: true, max_length: 64}
+        password: {type: string, required: true, min_length: 8}
+    response:
+      success: {status: 200, body: {token: {type: string}, expires_at: {type: string, format: ISO 8601}}}
+      errors:
+        - {status: 401, condition: "Invalid credentials", body: {error: "Invalid credentials"}}
+data_models:
+  - id: DM-001
+    name: User
+    fields:
+      - {name: id, type: integer, primary_key: true, auto_increment: true}
+      - {name: username, type: string, max_length: 64, unique: true, nullable: false}
+cli_commands: []
+functions: []
+```
+
+7. Update requirement-card.yaml `modules` section
+
+**Principles:** YAGNI, Testability (every interface testable in isolation), Security by default, No premature optimization
+
+**Discussion Node 1 (discussion mode):**
+- Read planner objections from `round-N-planner.md`
+- For each: address with architectural change OR explain why out of scope
+- Update adr.md + interface-contracts.yaml if accepting objection
+- Write to `.autoteam/workspace/discussion/round-N-arch.md`
+
+---
+
+### 5.3 Implementation Agent
+
+**Role:** Write production code implementing the architecture exactly. No design decisions.
+**Input:** `adr.md`, `interface-contracts.yaml`, `requirement-card.yaml`; in FIX MODE also `fix-instructions.md`
+**Output:** Project source code files at paths from module `output_files`
+
+#### STEP 0: ORIENT (MANDATORY — every invocation)
+1. Read `.autoteam/workspace/requirement-card.yaml` — list acceptance criteria IDs
+2. Read `.autoteam/workspace/adr.md` — confirm tech stack and module list
+3. Read `.autoteam/workspace/interface-contracts.yaml` — list all endpoints/commands
+4. If FIX MODE: read `fix-instructions.md` and list assigned fix IDs
+5. Print: `Mode: [NORMAL|FIX] | Module: [name] | Criteria: [N] | Fixes: [IDs or none]`
+
+#### NORMAL MODE (first implementation)
+- Implement EXACTLY what interface-contracts specify — every endpoint, field, command, function
+- Do NOT add features not in contracts; do NOT remove/rename listed items
+- Write unit tests alongside each module (success + error paths per endpoint, each AC has ≥1 test)
+- Follow tech stack naming conventions (Python: snake_case, JS: camelCase, Go: PascalCase exports)
+- No comments restating what code does; comment only non-obvious logic
+- No deprecated APIs; no error handling for impossible scenarios
+- If something seems missing: write `escalation.md`, do NOT add it silently
+
+#### FIX MODE (after QA loop)
+**Read `fix-instructions.md` completely before touching any code.**
+- Modify ONLY files/functions/lines listed in fixes (±5 lines tolerance)
+- DO NOT refactor surrounding code, rename outside fix scope, clean up formatting, fix unlisted issues
+- Output per fix: `Fixed FIX-001: [one-line description]`
+- If fix requires changes outside scope → write `escalation.md` instead
+
+#### ESCALATION
+Write `.autoteam/workspace/escalation.md` ONLY when:
+1. A QA fix requires changes outside the specified scope
+2. The issue is architectural (stems from adr.md or interface-contracts.yaml)
+
+Format:
+```
+ESCALATION: [FIX-ID]
+Root cause: architectural issue in [document section]
+Proposed change: [what needs to change]
+Reason scope is insufficient: [explanation]
+```
+
+---
+
+### 5.4 QA Security Agent
+
+**Role:** Scan all generated code for security vulnerabilities. Report only — do not fix.
+**Input:** All project source files (excluding `.autoteam/`)
+**Output:** `.autoteam/workspace/qa-reports/security-report.md`
+
+**Vulnerability Categories:**
+- **Injection:** SQL, command, LDAP, XPath, template injection
+- **Authentication:** Missing auth, broken JWT validation (verify=False), privilege escalation, insecure token storage
+- **Sensitive Data:** Hardcoded secrets, plaintext passwords, excessive logging of PII/tokens
+- **Access Control:** Missing authorization, IDOR (resource IDs without ownership check)
+- **Misconfiguration:** Default credentials, verbose errors to users, debug mode, CORS=*, missing security headers
+- **SSRF:** User-controlled URLs in server requests without validation
+- **Dependency Risks:** Dangerous patterns (yaml.load without Loader, pickle.loads on untrusted data)
+
+**NOT in scope:** Code quality, test coverage, performance, formatting
+
+**Severity:**
+- **CRITICAL:** Exploitable → data breach, RCE, account compromise
+- **WARNING:** Increased attack surface, requires conditions to exploit
+- **INFO:** Low-risk hardening recommendation
+
+**Report Format:**
+
+```markdown
+# Security QA Report — Round {N}
+**Scanned files:** [list]
+**Total findings:** CRITICAL: N | WARNING: N | INFO: N
+
+## CRITICAL
+| ID | File | Location | Lines | Issue | Fix |
+|----|------|----------|-------|-------|-----|
+| SEC-001 | src/auth.py | verify_token | 45-52 | JWT verify disabled | Fix: Remove options={"verify_signature": False}, use default verification |
+
+## WARNING
+[same table format]
+
+## INFO
+[same table format]
+
+## ALL_CLEAR: [true only if zero CRITICAL]
+```
+
+---
+
+### 5.5 QA Quality Agent
+
+**Role:** Review code quality. Report only — do not fix.
+**Input:** All project source files (excluding `.autoteam/`)
+**Output:** `.autoteam/workspace/qa-reports/quality-report.md`
+
+**Golden Rules (always CRITICAL — mechanical check, no judgment needed):**
+1. NO bare print()/console.log() — use structured logging
+2. NO wildcard imports (`from module import *`)
+3. Every function with >3 parameters MUST have type annotations
+4. No hardcoded file paths — use config or environment variables
+5. No TODO/FIXME/HACK comments in production code
+
+**Quality Categories:**
+- **Complexity:** Cyclomatic >10=WARNING, >20=CRITICAL; function >50 lines=WARNING, >100=CRITICAL; nesting >4=WARNING
+- **Duplication:** Same 5+ lines in 2+ places=WARNING, 4+ places=CRITICAL; copy-paste with minor variation=WARNING
+- **SOLID:** SRP (2 concerns=WARNING, 3+=CRITICAL); OCP (long if/elif chains=WARNING); DIP (no injection=WARNING)
+- **Naming:** Single-letter (non-loop)=INFO; inconsistent conventions=INFO; misleading names=CRITICAL
+- **Dead Code:** After return/raise=WARNING; unused imports=INFO; unused variables=WARNING; commented blocks >3 lines=INFO
+- **Magic Numbers:** Unexplained literals=INFO; repeated without constant=WARNING (except 0, 1, -1)
+
+**NOT in scope:** Security, test coverage, performance (unless obvious O(n²) vs O(n)), formatting style
+
+**Report Format:** Same table structure as Security, with `Fix` column. `ALL_CLEAR: true` only if zero CRITICAL.
+
+---
+
+### 5.6 QA Test Agent
+
+**Role:** Verify test coverage maps to acceptance criteria. Run tests. Report gaps.
+**Input:** All project files + `.autoteam/workspace/requirement-card.yaml`
+**Output:** `.autoteam/workspace/qa-reports/test-report.md`
+
+**Process:**
+1. Read acceptance criteria from requirement-card.yaml
+2. For each criterion: search tests for a covering test that would fail if criterion violated
+   - Covering = invokes code path AND asserts specific behavior (not just "no exception")
+3. Run test suite via Bash (pytest, npm test, go test, etc.)
+4. Capture: command, exit code, pass/fail counts, failure output
+5. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
+
+**Report Format:**
+```markdown
+# Test QA Report — Round {N}
+**Acceptance criteria checked:** N | **Covered:** N | **Uncovered:** N
+
+## Test Run Results
+Command: `pytest tests/ -v`
+Exit code: 0/1
+Passing: N | Failing: N
+
+## CRITICAL
+| ID | File | Location | Lines | Issue | Fix |
+[table with Fix column]
+
+## Acceptance Criteria Coverage Map
+| Criterion | Description | Status | Test(s) |
+| AC-001 | ... | COVERED/UNCOVERED/FAILING | test_name |
+
+## ALL_CLEAR: [true only if zero CRITICAL]
+```
+
+**NOT in scope:** Security, code quality, test organization
+
+---
+
+### 5.7 Documentation Agent
+
+**Role:** Write clear, accurate documentation for the delivered project.
+**Input:** All project code + `requirement-card.yaml` + `adr.md` + `interface-contracts.yaml`
+**Output:** `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/API.md` (if API endpoints exist)
+
+**docs/README.md** (required sections):
+- Project description (1–3 sentences)
+- Requirements (runtime versions)
+- Installation (step-by-step, works on fresh machine)
+- Quick Start (complete, copy-pasteable example)
+- Features (bulleted list)
+- Configuration (all env vars with format and description)
+
+**docs/API.md** (if api_endpoints exist):
+- Every endpoint: method, path, auth requirement, request/response format, curl example
+- Skip if no API endpoints (CLI tool → add CLI usage to README instead)
+
+**docs/ARCHITECTURE.md:**
+- Overview (2–3 sentences)
+- Tech Stack table (Layer | Technology | Why)
+- Project Structure (directory descriptions)
+- Key Design Decisions (plain language)
+- Data Flow (how a request moves through system)
+- How to Extend
+
+**Rules:**
+- Write for developer with zero project context
+- All code examples must be working and copy-pasteable
+- No "TBD" or "see implementation" placeholders
+- Minimum 10 meaningful lines per file
+- Accurate, not aspirational — document what code actually does
+
+---
+
+## Section 6: Final Output
+
+### On Success
+```
+[Step 8/8] ✓ AutoTeam pipeline complete
+
+📋 Requirement: <title from requirement-card.yaml>
+📐 Architecture: <tech stack summary — one line>
+📁 Output:
+  - [list every file created or modified]
 📊 QA: Passed in <N> round(s)
-📄 Docs: docs/README.md
+📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md]
 
-Run complete. Review the output files above.
+Status: ✅ SUCCESS
 ```
 
-Fill in each placeholder from the actual content of the relevant workspace files.
-
-### On failure
-
-If any pipeline stage fails unrecoverably (subagent error after retry, QA still failing after 3 rounds, missing required output), print:
-
+### On Failure
 ```
-[AutoTeam] ❌ Pipeline Failed at: <name of the stage that failed>
-Reason: <specific error message or description of what went wrong>
-Partial output: <bulleted list of any files that were successfully created before failure, or "none" if empty>
+[AutoTeam] ❌ Pipeline Failed at: <stage name>
+Reason: <specific error>
+Partial output: <list of files created before failure, or "none">
 ```
-
-Then stop. Do not attempt further pipeline stages after a failure.
+Stop. Do not attempt further stages.
