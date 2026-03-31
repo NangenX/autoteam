@@ -171,31 +171,49 @@ Explicit AutoTeam request
 
 **AGENTS.md** — Documentation agent auto-detects the harness command (justfile/package.json/pyproject.toml/Makefile) and generates `AGENTS.md` at project root for future AI agent onboarding.
 
-### Project Structure
+### Plugin Structure (v3.0)
+
+AutoTeam is now a standard Claude Code plugin with multi-platform support:
 
 ```
 .
-├── .claude/
-│   └── skills/
-│       └── autoteam.md       # Claude Code skill (v3.0, self-contained)
+├── .claude-plugin/
+│   ├── plugin.json          # Claude Code plugin manifest
+│   └── marketplace.json     # Claude marketplace metadata
+├── skills/autoteam/
+│   └── SKILL.md             # Canonical skill file (v3.0, self-contained)
+├── commands/
+│   ├── autoteam.md          # /autoteam slash command
+│   └── autoteam-status.md   # /autoteam:status slash command
+├── scripts/
+│   ├── init-session.{sh,ps1}       # Session initialization
+│   └── check-status.{sh,ps1}       # Status check utilities
+├── hooks/                   # Claude Code lifecycle hooks
+├── templates/               # Pipeline tracking templates
 ├── .github/
-│   ├── copilot-instructions.md            # Copilot default entry + AutoTeam trigger boundary
-│   └── instructions/
-│       └── autoteam.instructions.md       # Copilot-native AutoTeam orchestration instructions
-├── skills/
-│   └── autoteam.md           # Copilot reference template / prompt source
-├── src/                      # AutoTeam Python source (CLI runner)
-├── tests/                    # Test suite
-├── CLAUDE.md                 # Project index + alignment table
-└── config/                   # Configuration
+│   ├── copilot-instructions.md            # Copilot entry + AutoTeam trigger
+│   ├── instructions/autoteam.instructions.md  # Copilot orchestration
+│   └── hooks/               # Copilot-specific hooks
+├── .codex/skills/           # Codex CLI support
+├── .claude/skills/          # Legacy entry (deprecated, use skills/autoteam/SKILL.md)
+├── src/                     # AutoTeam Python source (CLI runner)
+├── tests/                   # Test suite
+├── CLAUDE.md                # Project index + alignment table
+└── config/                  # Configuration
 ```
 
-Claude Code reads `.claude/skills/autoteam.md`. Copilot CLI uses the `.github/` instruction files above. `skills/autoteam.md` remains in the repo as the extended reference/template for the Copilot-native prompt.
+**Entry points by platform:**
+- **Claude Code:** `.claude-plugin/` + `skills/autoteam/SKILL.md` (canonical)
+- **Copilot CLI:** `.github/copilot-instructions.md` + `.github/instructions/autoteam.instructions.md`
+- **Codex CLI:** `.codex/skills/autoteam.md`
+
+> The legacy `.claude/skills/autoteam.md` is deprecated. Use `skills/autoteam/SKILL.md` as the canonical entry.
 
 ### Requirements
 
-- [Claude Code](https://claude.ai/code) CLI — for the `.claude/skills/` version
-- [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) — for the repo-native `.github/` instruction version
+- [Claude Code](https://claude.ai/code) CLI v0.5.0+ — for plugin installation
+- [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) — for repo-native `.github/` instruction version
+- [Codex CLI](https://codex.dev) — for `.codex/skills/` version
 - Anthropic API key (Claude Opus 4, Sonnet 4, Haiku models) for Claude Code
 - GitHub Copilot subscription with multi-model access for Copilot CLI (no separate Anthropic/OpenAI key required by this repo)
 
