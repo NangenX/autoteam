@@ -182,9 +182,19 @@ next_action: <what happens next>
 ### Out
 - [明确不做的]
 
-## Success Criteria
-- [可验证的交付标准，人类可读]
-- [格式：行为描述，不是技术实现]
+## Features
+### FEAT-001: <功能名称>
+- scope: "<具体范围>"
+- status: pending
+- done_criteria:
+  - [ ] <DC-001>: <可验证的行为描述>
+  - [ ] <DC-002>: <可验证的行为描述>
+
+### FEAT-002: <功能名称>
+- scope: "<具体范围>"
+- status: pending
+- done_criteria:
+  - [ ] <DC-001>: <可验证的行为描述>
 
 ## Risks & Open Questions
 - [未解决的疑问或风险]
@@ -196,6 +206,7 @@ next_action: <what happens next>
 APPROVED: <true/false>
 Approved-by: <人类确认>
 Approved-at: <ISO 8601>
+Last-review-at: <ISO 8601>
 ```
 
 3. 展示 plan.md 给人类：
@@ -305,13 +316,25 @@ modules:
 
 **Skip conditions:** If only 1 module with ≤3 acceptance criteria, skip contract (too simple to need negotiation).
 
-### Step 6 — Dispatch Implementation
-- Read `modules` from `requirement-card.yaml`
-- Modules with no `depends_on`: dispatch as **parallel** subagents
-- Modules with `depends_on`: dispatch **serially** after dependencies complete
-- Each uses the **Implementation** definition (Section 5.3) in NORMAL MODE
-- Print: `[Step 6/11] ✓ Implementation complete → all modules written`
-- **Write phase-summary.md** with implementation status
+### Step 6 — Dispatch Implementation (Feature-by-Feature)
+**Process Features sequentially — each Feature: Implementation → QA verified → next Feature**
+
+1. Read `features` from `requirement-card.yaml`
+2. For each Feature (FEAT-001, FEAT-002, ...):
+   - Update Feature status to `in_progress`
+   - Print: `[Step 6/11] [FEAT-001] Implementation starting...`
+   - Dispatch Implementation agent for this Feature (NORMAL MODE)
+   - Implementation marks Feature as `done` when done_criteria are met in code
+   - Print: `[Step 6/11] [FEAT-001] Implementation done → QA verifying...`
+   - Dispatch QA Test agent (Section 5.6) to verify this Feature's done_criteria
+   - If all done_criteria pass → Update Feature status to `verified`
+     - Print: `[Step 6/11] [FEAT-001] ✓ QA verified`
+   - If any done_criteria fail → Implementation Fix Loop (max 3 rounds)
+     - After fix → re-verify → if still failing → escalate
+   - After verified → auto-proceed to next Feature
+3. When all Features are `verified`:
+   - Print: `[Step 6/11] ✓ All features verified`
+   - **Write phase-summary.md** with implementation status
 
 ### Step 6.5 — Multi-Gate Check (Deterministic Enforcement)
 Before dispatching QA agents, run all available deterministic gates on generated code:
@@ -359,24 +382,26 @@ Before dispatching QA agents, run all available deterministic gates on generated
     Result: N/N active gates PASS
   ```
 
-### Step 7 — QA Pipeline
-Dispatch three QA subagents **in sequence** (not parallel):
+### Step 7 — QA Pipeline (Overall)
+**Note: QA Test already completed per-Feature in Step 6. This step runs overall Security and Quality checks.**
+
+Dispatch two QA subagents **in sequence**:
 1. **QA Security** (Section 5.4) → `security-report.md`
 2. **QA Quality** (Section 5.5) → `quality-report.md`
-3. **QA Test** (Section 5.6) → `test-report.md`
-- Print: `[Step 7/11] ✓ QA Pipeline complete → 3 reports written`
+- Print: `[Step 7/11] ✓ QA Pipeline complete → 2 reports written`
 
 ### Step 8 — Aggregate QA Results
-- Merge all three reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
-- Prefix IDs: SEC-, QUA-, TST-
+- Merge security and quality reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
+- Prefix IDs: SEC-, QUA-
+- Note: Test coverage verified per-Feature in Step 6 (QA Test agent ran for each Feature)
 - Set `ALL_CLEAR: true` only if zero CRITICAL findings AND overall quality score ≥ 3.0/5
 - Tally council votes from each QA report:
   ```
   ## Council Tally
-  QA Security: ACCEPT (HIGH) | QA Quality: ACCEPT (MEDIUM) | QA Test: REJECT (HIGH)
-  Result: 2/3 ACCEPT → PASS | 1/3 ACCEPT → FAIL
+  QA Security: ACCEPT (HIGH) | QA Quality: ACCEPT (MEDIUM)
+  Result: 2/2 ACCEPT → PASS | <2 ACCEPT → FAIL
   ```
-- Set `ALL_CLEAR: true` only if: **Council ≥ 2/3 ACCEPT** AND zero CRITICAL findings AND overall quality score ≥ 3.0/5
+- Set `ALL_CLEAR: true` only if: **Council = 2/2 ACCEPT** AND zero CRITICAL findings AND overall quality score ≥ 3.0/5
 - Collect quality scores from each QA report and record in aggregated-report.md header:
   ```
   ## Quality Scores (Round N)
@@ -398,7 +423,7 @@ fixes:
 - **Write phase-summary.md** with QA results (critical count, pending fixes)
 
 ### Step 9 — QA Loop Decision
-**ALL_CLEAR=true** (≥2/3 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
+**ALL_CLEAR=true** (=2/2 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
 
 **ALL_CLEAR=false** →
 - Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
@@ -428,11 +453,16 @@ After all code and docs are written:
    - Branch base: <base branch name>
    - Harness status before: <PASS/FAIL/N/A (from pre-existing gate check)>
 
+   ## Features Completed
+   | Feature | Status | Verified-by | Verified-at |
+   |---------|--------|-------------|-------------|
+   | FEAT-001 | verified | QA Test | <ISO 8601> |
+   | FEAT-002 | verified | QA Test | <ISO 8601> |
+
    ## Evidence
    - Multi-Gate: <N/N active gates PASS / FAIL at gate X / all SKIPPED>
-   - QA Council: <N/3 ACCEPT — scores: security X.X, quality X.X, design X.X, test X.X, functionality X.X>
+   - QA Council: <2/2 ACCEPT — scores: security X.X, quality X.X>
    - QA Rounds: <N round(s) to pass>
-   - Sprint Contract: <MET / NOT_MET / SKIPPED>
    - Files created: <count>
    - Files modified: <count>
    - Test files: <count>
@@ -440,17 +470,22 @@ After all code and docs are written:
    ## Rollback
    git revert <commit-sha>  # fill in after commit
    ```
-   - Pull data from: `requirement-card.yaml` (intent), `qa-reports/aggregated-report.md` (QA results), `qa-reports/gate-report.md` (gate results), `sprint-contract.yaml` (contract status)
+   - Pull data from: `requirement-card.yaml` (features status), `qa-reports/aggregated-report.md` (QA results)
 2. Stage all generated/modified files + `.autoteam/workspace/chunk.md` (exclude rest of `.autoteam/workspace/`, `.autoteam/runs/`)
 3. Commit with message:
    ```
    feat: <one-line requirement summary>
 
-   AutoTeam pipeline — QA passed in {N} round(s)
-   Agents: Product Planner → Architecture → Implementation → QA×3 → Docs
+   AutoTeam pipeline — {N} features verified, QA passed
+   Features: FEAT-001, FEAT-002, ...
    ```
-4. Print: `[Step 10.5/11] ✓ Changes committed on branch autoteam/<branch-name>`
-5. Do NOT push or create PR (user decides next step)
+4. **Create PR locally** (do NOT push):
+   ```
+   gh pr create --draft --title "feat: <title>" --body "..."
+   ```
+5. Print: `[Step 10.5/11] ✓ PR created locally on branch autoteam/<branch-name>`
+6. Print: `🔀 Run 'git push' to push branch and submit PR`
+7. Do NOT push — wait for user command
 
 **Skip conditions:** `git` not available, not a git repo, or user requirement says "don't commit"
 
@@ -510,12 +545,13 @@ Format: <expected schema>
 - `docs/CODE-SUMMARY.md` (existing codebase context, if it exists — skip if not present)
 
 **Process:**
-1. Read `plan.md` — extract Goals, Scope (In/Out), Success Criteria, and Verification
+1. Read `plan.md` — extract Goals, Scope (In/Out), Features (with done_criteria), and Verification
 2. Read `docs/CODE-SUMMARY.md` if it exists to understand existing project structure (brownfield scenarios)
 3. Transform the human-readable Success Criteria from plan.md into structured `acceptance_criteria` entries — each must be independently testable, specific, behavioral (observable outcomes, not implementation details)
 4. Copy Scope/In and Scope/Out to `out_of_scope` in requirement-card.yaml
 5. List tech constraints — only user-stated ones from plan.md or CODE-SUMMARY.md. If none: `tech_constraints: []`
-6. Write `requirement-card.yaml`:
+6. Copy Features list (FEAT-XXX) with their done_criteria to `features` in requirement-card.yaml — these are the execution units
+7. Write `requirement-card.yaml`:
 
 ```yaml
 requirement: |
@@ -528,6 +564,26 @@ out_of_scope:
   - "[not required item]"
 tech_constraints:
   - "[user-stated constraint]"
+features:  # Derived from plan.md Features
+  - id: FEAT-001
+    name: "<feature name>"
+    scope: "<scope description>"
+    status: pending
+    done_criteria:
+      - id: DC-001
+        description: "<behavior description>"
+        testable: true
+      - id: DC-002
+        description: "<behavior description>"
+        testable: true
+  - id: FEAT-002
+    name: "<feature name>"
+    scope: "<scope description>"
+    status: pending
+    done_criteria:
+      - id: DC-001
+        description: "<behavior description>"
+        testable: true
 modules: []  # Architecture fills this in
 ```
 
@@ -867,12 +923,12 @@ If the project is a web application (has api_endpoints or serves HTML):
 [Step 11/11] ✓ AutoTeam pipeline complete
 
 📋 Requirement: <title from requirement-card.yaml>
+📦 Features: FEAT-001 (verified) | FEAT-002 (verified) | ...
 📐 Architecture: <tech stack summary — one line>
 📁 Output:
   - [list every file created or modified]
-📊 QA: Passed in <N> round(s)
-📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md], AGENTS.md
-🔀 Branch: autoteam/<name> (run `git push -u origin <branch>` to create PR)
+📊 QA: 2/2 ACCEPT (Security + Quality)
+🔀 Branch: autoteam/<name> (PR created locally — run 'git push' to submit)
 
 Status: ✅ SUCCESS
 ```
