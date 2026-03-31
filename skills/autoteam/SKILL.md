@@ -131,15 +131,34 @@ next_action: <what happens next>
 ### Step 0 — Human-AI Brainstorming
 **性质：强制 gate — 必须人类批准 plan.md 才能继续**
 
-0. **检查现有 plan.md：**
-   - If `.autoteam/workspace/plan.md` exists:
-     - Extract `APPROVED:` value
-     - If `APPROVED: true` AND requirement matches plan goals:
+0. **检查现有 plan.md 和过期状态：**
+   - If `.autoteam/workspace/plan.md` exists with APPROVED: true:
+     - Run `git diff --stat --since="<last_review_at>"`
+     - Check trigger conditions (max_age_days, max_code_changes, max_new_files)
+     - If NO trigger satisfied:
        - Print: `[Step 0/11] ✓ Using existing approved plan.md (skip)`
        - Skip to Step 1
-     - If `APPROVED: false` or no file:
-       - Proceed to brainstorming (resume from last state)
-   - If no file exists: proceed to brainstorming
+     - If ANY trigger satisfied:
+       - Print: `[Step 0/11] ⚠️ Plan may be stale — quick review`
+       - 展示变更摘要（行数、文件数）
+       - 执行**轻量确认流程**（见下方）
+   - If `APPROVED: false` or no file: proceed to brainstorming
+
+**轻量确认流程：**
+- 展示当前 plan.md 的 Goals 和 Scope
+- 询问人类：
+  1. "我们要做的事"（目标）有没有变？
+  2. "包含哪些功能"（范围）有没有变？
+  3. 有没有新的功能点要加进来？
+  4. 有没有功能不需要做了？
+- 如果全部回答"没变"：
+  - 更新 `last_review_at: <ISO 8601>`
+  - 继续 Step 1
+- 如果有任何"变了"：
+  - AI 询问具体变化内容
+  - 增量更新 plan.md 中相关部分
+  - 重新展示更新后的 plan.md
+  - 等待人类最终 APPROVED: true
 
 1. Orchestration 以 Socratic 方式展示 requirement，询问人类澄清性问题：
    - 目标用户是谁？使用场景？
