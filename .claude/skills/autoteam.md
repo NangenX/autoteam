@@ -88,7 +88,7 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
   - Archive entire workspace to `.autoteam/runs/<YYYYMMDD-HHMMSS>/` (copy, not move)
   - Print: `[Archive] Previous run archived → .autoteam/runs/<timestamp>/`
 - Create/ensure directories: `.autoteam/workspace/`, `.autoteam/workspace/qa-reports/`, `.autoteam/workspace/discussion/`
-- Delete any existing `.yaml`, `.md` files in workspace (except templates starting with `# TEMPLATE`)
+- Delete any existing `.yaml`, `.md` files in workspace (except templates starting with `# TEMPLATE` and except `plan.md`)
 - Print: `[Step 0/8] ✓ Workspace initialized`
 
 ### Step 3 — Dispatch Product Planner

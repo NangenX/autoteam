@@ -235,7 +235,7 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
   - Archive entire workspace to `.autoteam/runs/<YYYYMMDD-HHMMSS>/` (copy, not move)
   - Print: `[Archive] Previous run archived → .autoteam/runs/<timestamp>/`
 - Create/ensure directories: `.autoteam/workspace/`, `.autoteam/workspace/qa-reports/`, `.autoteam/workspace/discussion/`
-- Delete any existing `.yaml`, `.md` files in workspace (except templates starting with `# TEMPLATE`)
+- Delete any existing `.yaml`, `.md` files in workspace (except templates starting with `# TEMPLATE` and except `plan.md`)
 - Print: `[Step 2/11] ✓ Workspace initialized`
 
 ### Step 2.5 — Code Summarization
