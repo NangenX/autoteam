@@ -48,6 +48,10 @@ QA 委员会（2 智能体：安全 + 质量）
   ↓  ← [修复循环：最多 3 轮，最小变更原则]
 文档智能体 ──→ docs/ + AGENTS.md
   ↓
+Work Chunk 证据 ──→ chunk.md（提交存证）
+  ↓
+Git 提交到新分支
+  ↓
 PR 创建到本地分支
   ↓
 ✅ 完成（用户执行 git push 提交 PR）
@@ -121,7 +125,9 @@ Use AutoTeam to implement: build a REST API for task management
 
 The Copilot version is activated by repository instruction files: `.github/copilot-instructions.md` and `.github/instructions/autoteam.instructions.md`.
 
-### Commands
+### Claude Code Commands
+
+These slash commands are available in Claude Code. Copilot CLI does **not** support `/autoteam`-style slash commands — use natural-language triggers instead.
 
 | Command | Description |
 |---|---|
@@ -183,7 +189,7 @@ Explicit AutoTeam request
 
 **Multi-Gate Check (A-F)** — Before QA agents run, deterministic gates check lint, import boundaries, structural rules, snapshots, golden outputs, and numerical equivalence. Gates B-F are conditional on project config. Ratchet mode allows existing violations in brownfield projects while blocking new ones.
 
-**Council voting (2/2)** — QA Security and QA Quality each output a vote (ACCEPT/REJECT). ALL_CLEAR requires 2/2 ACCEPT + zero CRITICAL + score ≥3.0/5. Note: QA Test ran per-Feature during Implementation step.
+**Council voting (2/2)** — QA Security and QA Quality each output a vote (ACCEPT/REJECT). ALL_CLEAR requires 2/2 ACCEPT + zero CRITICAL + score ≥3.0/5. Note: QA Test ran per-Feature during Implementation step. Copilot CLI currently uses 3-agent QA Council (Security/Quality/Test) with ≥2/3 ACCEPT as defined in `.github/instructions/autoteam.instructions.md`.
 
 **Work Chunk evidence** — Before every commit, `chunk.md` is generated with intent, preconditions, gate results, council scores, and rollback instructions. Committed alongside code for auditable history.
 

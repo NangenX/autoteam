@@ -15,6 +15,6 @@ If the user asks ordinary coding questions, debugging questions, or repository q
 When AutoTeam mode is explicitly requested:
 
 1. Read `.github/instructions/autoteam.instructions.md`.
-2. Use `skills/autoteam.md` as the extended reference/template if more pipeline detail is needed.
+2. Use `skills/autoteam/SKILL.md` as the extended reference/template if more pipeline detail is needed.
 3. Do **not** emit or expect the `/autoteam` slash command; that syntax is for Claude Code, not Copilot CLI.
 4. Keep AutoTeam behavior scoped to the current request. Do not assume every later message should use the pipeline unless the user keeps referring to AutoTeam.
