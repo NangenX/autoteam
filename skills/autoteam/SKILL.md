@@ -74,6 +74,7 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/qa-reports/ratchet-baseline.txt` | Orchestration |
 | `.autoteam/workspace/chunk.md` | Orchestration |
 | `.autoteam/workspace/escalation.md` | Implementation |
+| `.autoteam/workspace/plan.md` | Orchestration (write) + Human (approve) |
 | `docs/CODE-SUMMARY.md` | Orchestration |
 
 ### Rules
@@ -110,7 +111,123 @@ next_action: <what happens next>
 **Write phase-summary.md after:** Step 6 (Implementation), Step 8 (QA Aggregate), each QA fix loop iteration.
 **Read phase-summary.md before:** Step 7 (QA Pipeline), Step 9 (QA Loop Decision), Step 10 (Documentation).
 
-### Step 1 — Input Validation
+**Pipeline step reference (for internal Orchestration logic):**
+- Step 0: Human-AI Brainstorming (plan.md approval)
+- Step 1: Validate plan.md
+- Step 2: Initialize Workspace
+- Step 3: Product Planner
+- Step 4: Architecture
+- Step 5: Discussion Node 1
+- Step 5.5: Sprint Contract
+- Step 6: Implementation
+- Step 6.5: Multi-Gate Check
+- Step 7: QA Pipeline
+- Step 8: Aggregate QA Results
+- Step 9: QA Loop Decision
+- Step 10: Documentation
+- Step 10.5: Git Integration
+- Step 11: Final Summary
+
+### Step 0 — Human-AI Brainstorming
+**性质：强制 gate — 必须人类批准 plan.md 才能继续**
+
+0. **检查现有 plan.md 和过期状态：**
+   - If `.autoteam/workspace/plan.md` exists with APPROVED: true:
+     - Run `git diff --stat --since="<last_review_at>"`
+     - Check trigger conditions (max_age_days, max_code_changes, max_new_files)
+     - If NO trigger satisfied:
+       - Print: `[Step 0/11] ✓ Using existing approved plan.md (skip)`
+       - Skip to Step 1
+     - If ANY trigger satisfied:
+       - Print: `[Step 0/11] ⚠️ Plan may be stale — quick review`
+       - 展示变更摘要（行数、文件数）
+       - 执行**轻量确认流程**（见下方）
+   - If `APPROVED: false` or no file: proceed to brainstorming
+
+**轻量确认流程：**
+- 展示当前 plan.md 的 Goals 和 Scope
+- 询问人类：
+  1. "我们要做的事"（目标）有没有变？
+  2. "包含哪些功能"（范围）有没有变？
+  3. 有没有新的功能点要加进来？
+  4. 有没有功能不需要做了？
+- 如果全部回答"没变"：
+  - 更新 `last_review_at: <ISO 8601>`
+  - 继续 Step 1
+- 如果有任何"变了"：
+  - AI 询问具体变化内容
+  - 增量更新 plan.md 中相关部分
+  - 重新展示更新后的 plan.md
+  - 等待人类最终 APPROVED: true
+
+1. Orchestration 以 Socratic 方式展示 requirement，询问人类澄清性问题：
+   - 目标用户是谁？使用场景？
+   - 核心功能优先级？哪些必须要有，哪些可以不要？
+   - 成功的衡量标准？如何验证？
+   - 技术偏好/约束？已有代码需要集成？
+   - 风险/顾虑？
+
+2. Orchestration 记录人类回答，生成 `.autoteam/workspace/plan.md` 草案：
+
+```markdown
+# Plan: <requirement title>
+
+## Goals
+- [人类确认的高层目标]
+
+## Scope
+### In
+- [确认要做的]
+
+### Out
+- [明确不做的]
+
+## Features
+### FEAT-001: <功能名称>
+- scope: "<具体范围>"
+- status: pending
+- done_criteria:
+  - [ ] <DC-001>: <可验证的行为描述>
+  - [ ] <DC-002>: <可验证的行为描述>
+
+### FEAT-002: <功能名称>
+- scope: "<具体范围>"
+- status: pending
+- done_criteria:
+  - [ ] <DC-001>: <可验证的行为描述>
+
+## Risks & Open Questions
+- [未解决的疑问或风险]
+
+## Verification
+- [如何验证交付成功]
+
+---
+APPROVED: <true/false>
+Approved-by: <人类确认>
+Approved-at: <ISO 8601>
+Last-review-at: <ISO 8601>
+```
+
+3. 展示 plan.md 给人类：
+   - "请审阅上面的 plan.md，批准或提出修改意见"
+
+4. 人类反应：
+   - **批准**（`APPROVED: true`）→ 继续 Step 1
+   - **修改** → Orchestration 根据意见更新 plan.md → 重新展示 → 重复步骤 3-4
+   - **拒绝**（如人类明确说"取消"）→ 停止 pipeline
+
+5. 最多无限追问（人类可以随时批准或继续修改）
+
+**打印**：
+- `[Step 0/11] ✓ Plan approved → plan.md`
+- `[Brainstorm] 等待人类批准 plan.md...`
+
+### Step 1 — Validate plan.md
+- Read `.autoteam/workspace/plan.md`
+- If `APPROVED: false` or file not exists: stop with `[ERROR] Plan not approved`
+- Validate `<REQUIREMENT>` is consistent with plan.md goals
+- If inconsistent: warn and stop
 Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] Invalid requirement`.
 
 ### Step 2 — Initialize Workspace
@@ -119,7 +236,7 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
   - Print: `[Archive] Previous run archived → .autoteam/runs/<timestamp>/`
 - Create/ensure directories: `.autoteam/workspace/`, `.autoteam/workspace/qa-reports/`, `.autoteam/workspace/discussion/`
 - Delete any existing `.yaml`, `.md` files in workspace (except templates starting with `# TEMPLATE`)
-- Print: `[Step 0/8] ✓ Workspace initialized`
+- Print: `[Step 2/11] ✓ Workspace initialized`
 
 ### Step 2.5 — Code Summarization
 - Check if `docs/CODE-SUMMARY.md` exists
@@ -147,13 +264,13 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
 - Dispatch subagent with `<REQUIREMENT>` and the **Product Planner** definition (Section 5.1)
 - Wait for `.autoteam/workspace/requirement-card.yaml`
 - Retry once on failure. Second failure → stop with error
-- Print: `[Step 1/8] ✓ Product Planner complete → requirement-card.yaml`
+- Print: `[Step 3/11] ✓ Product Planner complete → requirement-card.yaml`
 
 ### Step 4 — Dispatch Architecture
 - Dispatch subagent with the **Architecture** definition (Section 5.2)
 - Wait for `.autoteam/workspace/adr.md` AND `.autoteam/workspace/interface-contracts.yaml`
 - Retry up to 2 additional times on failure (3 total)
-- Print: `[Step 2/8] ✓ Architecture complete → adr.md + interface-contracts.yaml`
+- Print: `[Step 4/11] ✓ Architecture complete → adr.md + interface-contracts.yaml`
 
 ### Step 5 — Discussion Node 1 (Architecture vs Product Planner)
 - Read both `adr.md` and `requirement-card.yaml`
@@ -161,7 +278,7 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
 - Each round: Architecture writes `round-N-arch.md`, Product Planner writes `round-N-planner.md`
 - Exit when `APPROVED` appears, or after round 3 (Orchestration writes `consensus.md` with binding decision)
 - If no contradiction: skip entirely
-- Print: `[Step 3/8] ✓ Architecture-Planner alignment verified`
+- Print: `[Step 5/11] ✓ Architecture-Planner alignment verified`
 
 ### Step 5.5 — Sprint Contract Negotiation
 Before Implementation writes any code, Orchestration facilitates a contract between Implementation and QA Test:
@@ -195,17 +312,29 @@ modules:
 4. Implementation uses done_criteria as its implementation checklist
 5. QA Test uses done_criteria as its evaluation checklist (in addition to acceptance criteria)
 
-- Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
+- Print: `[Step 5.5/11] ✓ Sprint contract agreed → sprint-contract.yaml`
 
 **Skip conditions:** If only 1 module with ≤3 acceptance criteria, skip contract (too simple to need negotiation).
 
-### Step 6 — Dispatch Implementation
-- Read `modules` from `requirement-card.yaml`
-- Modules with no `depends_on`: dispatch as **parallel** subagents
-- Modules with `depends_on`: dispatch **serially** after dependencies complete
-- Each uses the **Implementation** definition (Section 5.3) in NORMAL MODE
-- Print: `[Step 4/8] ✓ Implementation complete → all modules written`
-- **Write phase-summary.md** with implementation status
+### Step 6 — Dispatch Implementation (Feature-by-Feature)
+**Process Features sequentially — each Feature: Implementation → QA verified → next Feature**
+
+1. Read `features` from `requirement-card.yaml`
+2. For each Feature (FEAT-001, FEAT-002, ...):
+   - Update Feature status to `in_progress`
+   - Print: `[Step 6/11] [FEAT-001] Implementation starting...`
+   - Dispatch Implementation agent for this Feature (NORMAL MODE)
+   - Implementation marks Feature as `done` when done_criteria are met in code
+   - Print: `[Step 6/11] [FEAT-001] Implementation done → QA verifying...`
+   - Dispatch QA Test agent (Section 5.6) to verify this Feature's done_criteria
+   - If all done_criteria pass → Update Feature status to `verified`
+     - Print: `[Step 6/11] [FEAT-001] ✓ QA verified`
+   - If any done_criteria fail → Implementation Fix Loop (max 3 rounds)
+     - After fix → re-verify → if still failing → escalate
+   - After verified → auto-proceed to next Feature
+3. When all Features are `verified`:
+   - Print: `[Step 6/11] ✓ All features verified`
+   - **Write phase-summary.md** with implementation status
 
 ### Step 6.5 — Multi-Gate Check (Deterministic Enforcement)
 Before dispatching QA agents, run all available deterministic gates on generated code:
@@ -242,7 +371,7 @@ Before dispatching QA agents, run all available deterministic gates on generated
 
 - Print:
   ```
-  [Step 4.5/8] Multi-Gate Check
+  [Step 6.5/11] Multi-Gate Check
     Gate A (Lint):      ✅ PASS | ⏭️ SKIPPED | ❌ FAIL
     Gate B (Imports):   ✅ PASS | ⏭️ SKIPPED (no import-linter config) | ❌ FAIL
     Gate C (AST Rules): ✅ PASS | ⏭️ SKIPPED (no sgconfig.yml) | ❌ FAIL
@@ -253,24 +382,26 @@ Before dispatching QA agents, run all available deterministic gates on generated
     Result: N/N active gates PASS
   ```
 
-### Step 7 — QA Pipeline
-Dispatch three QA subagents **in sequence** (not parallel):
+### Step 7 — QA Pipeline (Overall)
+**Note: QA Test already completed per-Feature in Step 6. This step runs overall Security and Quality checks.**
+
+Dispatch two QA subagents **in sequence**:
 1. **QA Security** (Section 5.4) → `security-report.md`
 2. **QA Quality** (Section 5.5) → `quality-report.md`
-3. **QA Test** (Section 5.6) → `test-report.md`
-- Print: `[Step 5/8] ✓ QA Pipeline complete → 3 reports written`
+- Print: `[Step 7/11] ✓ QA Pipeline complete → 2 reports written`
 
 ### Step 8 — Aggregate QA Results
-- Merge all three reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
-- Prefix IDs: SEC-, QUA-, TST-
+- Merge security and quality reports → `.autoteam/workspace/qa-reports/aggregated-report.md`
+- Prefix IDs: SEC-, QUA-
+- Note: Test coverage verified per-Feature in Step 6 (QA Test agent ran for each Feature)
 - Set `ALL_CLEAR: true` only if zero CRITICAL findings AND overall quality score ≥ 3.0/5
 - Tally council votes from each QA report:
   ```
   ## Council Tally
-  QA Security: ACCEPT (HIGH) | QA Quality: ACCEPT (MEDIUM) | QA Test: REJECT (HIGH)
-  Result: 2/3 ACCEPT → PASS | 1/3 ACCEPT → FAIL
+  QA Security: ACCEPT (HIGH) | QA Quality: ACCEPT (MEDIUM)
+  Result: 2/2 ACCEPT → PASS | <2 ACCEPT → FAIL
   ```
-- Set `ALL_CLEAR: true` only if: **Council ≥ 2/3 ACCEPT** AND zero CRITICAL findings AND overall quality score ≥ 3.0/5
+- Set `ALL_CLEAR: true` only if: **Council = 2/2 ACCEPT** AND zero CRITICAL findings AND overall quality score ≥ 3.0/5
 - Collect quality scores from each QA report and record in aggregated-report.md header:
   ```
   ## Quality Scores (Round N)
@@ -288,11 +419,11 @@ fixes:
     issue: "SQL injection via unsanitized input"
     fix: "Use parameterized queries"
 ```
-- Print: `[Step 6/8] ✓ QA aggregated → aggregated-report.md + fix-instructions.md`
+- Print: `[Step 8/11] ✓ QA aggregated → aggregated-report.md + fix-instructions.md`
 - **Write phase-summary.md** with QA results (critical count, pending fixes)
 
 ### Step 9 — QA Loop Decision
-**ALL_CLEAR=true** (≥2/3 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
+**ALL_CLEAR=true** (=2/2 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
 
 **ALL_CLEAR=false** →
 - Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
@@ -306,7 +437,7 @@ fixes:
 - Dispatch **Documentation** subagent (Section 5.7)
 - Wait for `docs/README.md` (minimum 10 lines), `docs/ARCHITECTURE.md`, and `AGENTS.md` (project root); if the project exposes API endpoints, also wait for `docs/API.md`
 - If `docs/README.md` has <10 lines: retry once with model `sonnet`
-- Print: `[Step 7/8] ✓ Documentation complete → docs/ written`
+- Print: `[Step 10/11] ✓ Documentation complete → docs/ written`
 
 ### Step 10.5 — Git Integration
 After all code and docs are written:
@@ -322,11 +453,16 @@ After all code and docs are written:
    - Branch base: <base branch name>
    - Harness status before: <PASS/FAIL/N/A (from pre-existing gate check)>
 
+   ## Features Completed
+   | Feature | Status | Verified-by | Verified-at |
+   |---------|--------|-------------|-------------|
+   | FEAT-001 | verified | QA Test | <ISO 8601> |
+   | FEAT-002 | verified | QA Test | <ISO 8601> |
+
    ## Evidence
    - Multi-Gate: <N/N active gates PASS / FAIL at gate X / all SKIPPED>
-   - QA Council: <N/3 ACCEPT — scores: security X.X, quality X.X, design X.X, test X.X, functionality X.X>
+   - QA Council: <2/2 ACCEPT — scores: security X.X, quality X.X>
    - QA Rounds: <N round(s) to pass>
-   - Sprint Contract: <MET / NOT_MET / SKIPPED>
    - Files created: <count>
    - Files modified: <count>
    - Test files: <count>
@@ -334,17 +470,22 @@ After all code and docs are written:
    ## Rollback
    git revert <commit-sha>  # fill in after commit
    ```
-   - Pull data from: `requirement-card.yaml` (intent), `qa-reports/aggregated-report.md` (QA results), `qa-reports/gate-report.md` (gate results), `sprint-contract.yaml` (contract status)
+   - Pull data from: `requirement-card.yaml` (features status), `qa-reports/aggregated-report.md` (QA results)
 2. Stage all generated/modified files + `.autoteam/workspace/chunk.md` (exclude rest of `.autoteam/workspace/`, `.autoteam/runs/`)
 3. Commit with message:
    ```
    feat: <one-line requirement summary>
 
-   AutoTeam pipeline — QA passed in {N} round(s)
-   Agents: Product Planner → Architecture → Implementation → QA×3 → Docs
+   AutoTeam pipeline — {N} features verified, QA passed
+   Features: FEAT-001, FEAT-002, ...
    ```
-4. Print: `[Step 7.5/8] ✓ Changes committed on branch autoteam/<branch-name>`
-5. Do NOT push or create PR (user decides next step)
+4. **Create PR locally** (do NOT push):
+   ```
+   gh pr create --draft --title "feat: <title>" --body "..."
+   ```
+5. Print: `[Step 10.5/11] ✓ PR created locally on branch autoteam/<branch-name>`
+6. Print: `🔀 Run 'git push' to push branch and submit PR`
+7. Do NOT push — wait for user command
 
 **Skip conditions:** `git` not available, not a git repo, or user requirement says "don't commit"
 
@@ -395,20 +536,22 @@ Format: <expected schema>
 
 ### 5.1 Product Planner Agent
 
-**Role:** Transform raw requirement into structured requirement card.
-**Input:** Raw requirement text (provided inline by Orchestration), `docs/CODE-SUMMARY.md` (if exists)
+**Role:** Transform approved plan.md into structured requirement-card.yaml.
+**Input:** `.autoteam/workspace/plan.md` (APPROVED: true), `docs/CODE-SUMMARY.md` (if exists)
 **Output:** `.autoteam/workspace/requirement-card.yaml`
 
 **Input Files:**
-- `<REQUIREMENT>` (provided inline by Orchestration)
+- `.autoteam/workspace/plan.md` (must have `APPROVED: true` — this is the human-approved plan)
 - `docs/CODE-SUMMARY.md` (existing codebase context, if it exists — skip if not present)
 
 **Process:**
-1. Read requirement. Identify: core deliverable, users, explicit tech constraints, implicit constraints. If `docs/CODE-SUMMARY.md` exists, read it to understand existing project structure (especially for brownfield/golden-path scenarios)
-2. Derive acceptance criteria — each must be independently testable, specific, behavioral (observable outcomes, not implementation details)
-3. Define out-of-scope — everything NOT required (features, NFRs, deployment, CI/CD, frontend if API-only)
-4. List tech constraints — only user-stated ones. If none: `tech_constraints: []`
-5. Write `requirement-card.yaml`:
+1. Read `plan.md` — extract Goals, Scope (In/Out), Features (with done_criteria), and Verification
+2. Read `docs/CODE-SUMMARY.md` if it exists to understand existing project structure (brownfield scenarios)
+3. Transform the human-readable Success Criteria from plan.md into structured `acceptance_criteria` entries — each must be independently testable, specific, behavioral (observable outcomes, not implementation details)
+4. Copy Scope/In and Scope/Out to `out_of_scope` in requirement-card.yaml
+5. List tech constraints — only user-stated ones from plan.md or CODE-SUMMARY.md. If none: `tech_constraints: []`
+6. Copy Features list (FEAT-XXX) with their done_criteria to `features` in requirement-card.yaml — these are the execution units
+7. Write `requirement-card.yaml`:
 
 ```yaml
 requirement: |
@@ -421,6 +564,26 @@ out_of_scope:
   - "[not required item]"
 tech_constraints:
   - "[user-stated constraint]"
+features:  # Derived from plan.md Features
+  - id: FEAT-001
+    name: "<feature name>"
+    scope: "<scope description>"
+    status: pending
+    done_criteria:
+      - id: DC-001
+        description: "<behavior description>"
+        testable: true
+      - id: DC-002
+        description: "<behavior description>"
+        testable: true
+  - id: FEAT-002
+    name: "<feature name>"
+    scope: "<scope description>"
+    status: pending
+    done_criteria:
+      - id: DC-001
+        description: "<behavior description>"
+        testable: true
 modules: []  # Architecture fills this in
 ```
 
@@ -757,15 +920,15 @@ If the project is a web application (has api_endpoints or serves HTML):
 
 ### On Success
 ```
-[Step 8/8] ✓ AutoTeam pipeline complete
+[Step 11/11] ✓ AutoTeam pipeline complete
 
 📋 Requirement: <title from requirement-card.yaml>
+📦 Features: FEAT-001 (verified) | FEAT-002 (verified) | ...
 📐 Architecture: <tech stack summary — one line>
 📁 Output:
   - [list every file created or modified]
-📊 QA: Passed in <N> round(s)
-📄 Docs: docs/README.md, docs/ARCHITECTURE.md[, docs/API.md], AGENTS.md
-🔀 Branch: autoteam/<name> (run `git push -u origin <branch>` to create PR)
+📊 QA: 2/2 ACCEPT (Security + Quality)
+🔀 Branch: autoteam/<name> (PR created locally — run 'git push' to submit)
 
 Status: ✅ SUCCESS
 ```
