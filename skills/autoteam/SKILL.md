@@ -52,6 +52,8 @@ Then stop.
 
 All inter-agent communication happens through files in `.autoteam/workspace/`. No agent may write to a file it does not own.
 
+**Exception:** `docs/CODE-SUMMARY.md` is a persistent, git-tracked file written by Orchestration (Step 2.5) and read by Product Planner and Architecture. It is NOT part of the inter-agent workspace protocol.
+
 ### File Ownership
 
 | File | Owner |
@@ -124,15 +126,22 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
   - If exists: extract `last_commit_hash` from header using regex `^Git Commit:\s*([a-f0-9]{40})$`
   - If not exists: proceed to generate
 - Run `git log -1 --format=%H` to get current commit hash
-- If file exists AND `last_commit_hash == current_commit_hash`:
-  - Print: `[Step 1.5/8] ✓ Code summary fresh (skip)`
+- Run `git status --porcelain` to check if working tree is clean
+  - `working_tree_clean = (output is empty)`
+- If file exists AND `last_commit_hash == current_commit_hash` AND `working_tree_clean`:
+  - Print: `[Step 0.5/8] ✓ Code summary fresh (skip)`
   - Skip generation
 - Otherwise:
   - Scan project source files (exclude: `.autoteam/`, `node_modules/`, `__pycache__/`, `.git/`, `venv/`, `.venv/`, `vendor/`)
   - Detect language/framework from file extensions or config files
   - Build summary: project overview, source files, key modules, dependencies, API surface, data models
-  - Write `docs/CODE-SUMMARY.md` with current git hash and timestamp in header
-  - Print: `[Step 1.5/8] ✓ Code summary generated`
+  - Write `docs/CODE-SUMMARY.md` with this exact header:
+    ```
+    **Generated:** <ISO 8601 timestamp>
+    **Git Commit:** <commit hash>
+    **Working Tree:** clean | dirty
+    ```
+  - Print: `[Step 0.5/8] ✓ Code summary generated`
 
 ### Step 3 — Dispatch Product Planner
 - Dispatch subagent with `<REQUIREMENT>` and the **Product Planner** definition (Section 5.1)
@@ -395,8 +404,7 @@ Format: <expected schema>
 - `docs/CODE-SUMMARY.md` (existing codebase context, if it exists — skip if not present)
 
 **Process:**
-1. Read requirement. Identify: core deliverable, users, explicit tech constraints, implicit constraints
-2. If `docs/CODE-SUMMARY.md` exists, read it to understand existing project structure (especially for brownfield/golden-path scenarios)
+1. Read requirement. Identify: core deliverable, users, explicit tech constraints, implicit constraints. If `docs/CODE-SUMMARY.md` exists, read it to understand existing project structure (especially for brownfield/golden-path scenarios)
 2. Derive acceptance criteria — each must be independently testable, specific, behavioral (observable outcomes, not implementation details)
 3. Define out-of-scope — everything NOT required (features, NFRs, deployment, CI/CD, frontend if API-only)
 4. List tech constraints — only user-stated ones. If none: `tech_constraints: []`
@@ -432,12 +440,12 @@ modules: []  # Architecture fills this in
 ### 5.2 Architecture Agent
 
 **Role:** Design tech architecture, select stack, define interface contracts.
-**Input:** `.autoteam/workspace/requirement-card.yaml`, `docs/CODE-SUMMARY.md`
+**Input:** `.autoteam/workspace/requirement-card.yaml`, `docs/CODE-SUMMARY.md` (if exists)
 **Output:** `.autoteam/workspace/adr.md`, `.autoteam/workspace/interface-contracts.yaml`, updated `modules` in requirement-card.yaml
 
 **Input Files:**
 - `.autoteam/workspace/requirement-card.yaml`
-- `docs/CODE-SUMMARY.md` (existing codebase context — for understanding current project state in brownfield scenarios)
+- `docs/CODE-SUMMARY.md` (if exists; existing codebase context — for understanding current project state in brownfield scenarios)
 
 **Process:**
 1. Read requirement-card.yaml fully (criteria, constraints, out-of-scope)
