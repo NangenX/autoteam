@@ -1,0 +1,10 @@
+{
+  "identifier": "autoteam",
+  "name": "AutoTeam",
+  "description": "Autonomous AI development team — 8 specialized agents collaborate to analyze, design, implement, test, and document software from a single requirement.",
+  "categories": ["development", "automation", "ai", "pipeline"],
+  "repository": "https://github.com/NangenX/autoteam",
+  "readme": "README.md",
+  "license": "MIT",
+  "keywords": ["autonomous", "development", "pipeline", "multi-agent", "qa", "testing"]
+}

@@ -30,15 +30,47 @@ All inter-agent files: `.autoteam/workspace/`
 Run archives: `.autoteam/runs/<timestamp>/`
 File ownership: see skill files Section 2
 
-## Entry Files
+## Plugin Structure
+
+AutoTeam is now a standard Claude Code plugin with multi-platform support.
+
+> **Canonical entry:** `skills/autoteam/SKILL.md` — This is the canonical skill file. The old `.claude/skills/autoteam.md` is deprecated and should not be used.
+
+### Installation
+```bash
+/plugin marketplace add <your-repo>/autoteam
+/plugin install autoteam@autoteam
+```
+
+### Entry Files
 
 | Platform | File |
 |---|---|
-| Claude Code | `.claude/skills/autoteam.md` |
+| Claude Code Plugin | `.claude-plugin/` + `skills/autoteam/SKILL.md` |
+| Claude Code Commands | `commands/autoteam.md`, `commands/autoteam-status.md` |
 | Copilot CLI (repo-native) | `.github/copilot-instructions.md` + `.github/instructions/autoteam.instructions.md` |
-| Copilot reference template | `skills/autoteam.md` |
+| Copilot CLI hooks | `.github/hooks/` |
+| Cursor IDE | `.cursor/hooks/` |
+| Continue.dev | `.continue/skills/` |
+| Mastra Code | `.mastracode/hooks/` |
+| Kiro | `.kiro/skills/` |
+| Codex CLI | `.codex/skills/` |
+| CodeBuddy | `.codebuddy/skills/` |
+| FactoryAI Droid | `.factory/skills/` |
+| OpenCode | `.opencode/skills/` |
+| Pi Agent | `.pi/skills/` |
 
-Claude Code reads its skill directly. Copilot CLI should use the `.github/` instruction files; `skills/autoteam.md` is the extended template/reference, not the auto-discovered entry point. This file is an index only.
+### Plugin Components
+
+| Directory | Purpose |
+|---|---|
+| `.claude-plugin/` | Plugin manifest (plugin.json, marketplace.json) |
+| `skills/autoteam/` | Main skill file (SKILL.md) with all 8 agent definitions |
+| `commands/` | Slash commands (/autoteam, /autoteam:status) |
+| `scripts/` | Automation scripts (init-session, check-status) |
+| `templates/` | Pipeline tracking templates |
+| `hooks/` | Claude Code lifecycle hooks |
+| `.github/hooks/` | Copilot CLI hooks |
 
 ## Harness Engineering Alignment
 
