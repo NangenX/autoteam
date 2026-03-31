@@ -21,8 +21,8 @@ fi
 mkdir -p "$WORKSPACE_DIR/qa-reports"
 mkdir -p "$WORKSPACE_DIR/discussion"
 
-# Clean up old workspace files (except templates)
-find "$WORKSPACE_DIR" -maxdepth 1 -type f \( -name "*.yaml" -o -name "*.md" \) ! -name "#TEMPLATE*" -delete 2>/dev/null || true
+# Clean up old workspace files recursively (except templates)
+find "$WORKSPACE_DIR" -type f \( -name "*.yaml" -o -name "*.md" \) ! -name "#TEMPLATE*" -delete 2>/dev/null || true
 
 echo "[AutoTeam] Session initialized"
 echo "  Workspace: $WORKSPACE_DIR/"

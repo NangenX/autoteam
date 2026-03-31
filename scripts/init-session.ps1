@@ -21,8 +21,8 @@ if (Test-Path $WorkspaceDir) {
 New-Item -ItemType Directory -Force -Path "$WorkspaceDir/qa-reports" | Out-Null
 New-Item -ItemType Directory -Force -Path "$WorkspaceDir/discussion" | Out-Null
 
-# Clean up old workspace files (except templates)
-Get-ChildItem $WorkspaceDir -File | Where-Object {
+# Clean up old workspace files recursively (except templates)
+Get-ChildItem $WorkspaceDir -Recurse -File | Where-Object {
     $_.Name -match '\.(yaml|md)$' -and $_.Name -notmatch '^#TEMPLATE'
 } | Remove-Item -Force -ErrorAction SilentlyContinue
 

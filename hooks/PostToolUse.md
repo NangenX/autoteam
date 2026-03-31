@@ -18,7 +18,7 @@ If phase changed, prompt user:
 
 ## General
 
-Always log significant actions to `.autoteam/workspace/progress.md`:
+Always log significant actions to `.autoteam/workspace/pipeline-status.md` (update the Notes section):
 - Tool used
 - File affected
 - Key outcome

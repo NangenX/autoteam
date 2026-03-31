@@ -4,7 +4,7 @@
 PHASE_SUMMARY=".autoteam/workspace/phase-summary.md"
 PIPELINE_STATUS=".autoteam/workspace/pipeline-status.md"
 
-if [ ! -f "$PHASE_SUMMARY" ]; then
+if [ ! -f "$PHASE_SUMMARY" ] && [ ! -f "$PIPELINE_STATUS" ]; then
     echo "No AutoTeam session active. Run /autoteam first."
     exit 1
 fi

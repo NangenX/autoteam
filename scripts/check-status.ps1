@@ -3,7 +3,7 @@
 $PhaseSummary = ".autoteam/workspace/phase-summary.md"
 $PipelineStatus = ".autoteam/workspace/pipeline-status.md"
 
-if (-not (Test-Path $PhaseSummary)) {
+if (-not (Test-Path $PhaseSummary) -and -not (Test-Path $PipelineStatus)) {
     Write-Host "No AutoTeam session active. Run /autoteam first."
     exit 1
 }

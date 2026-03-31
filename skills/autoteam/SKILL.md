@@ -279,8 +279,8 @@ fixes:
 
 ### Step 10 — Documentation
 - Dispatch **Documentation** subagent (Section 5.7)
-- Wait for `docs/README.md` (minimum 10 lines) and `AGENTS.md` (project root)
-- If <10 lines: retry once with model `sonnet`
+- Wait for `docs/README.md` (minimum 10 lines), `docs/ARCHITECTURE.md`, and `AGENTS.md` (project root); if the project exposes API endpoints, also wait for `docs/API.md`
+- If `docs/README.md` has <10 lines: retry once with model `sonnet`
 - Print: `[Step 7/8] ✓ Documentation complete → docs/ written`
 
 ### Step 10.5 — Git Integration

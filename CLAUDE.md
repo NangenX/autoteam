@@ -34,6 +34,8 @@ File ownership: see skill files Section 2
 
 AutoTeam is now a standard Claude Code plugin with multi-platform support.
 
+> **Canonical entry:** `skills/autoteam/SKILL.md` — This is the canonical skill file. The old `.claude/skills/autoteam.md` is deprecated and should not be used.
+
 ### Installation
 ```bash
 /plugin marketplace add <your-repo>/autoteam
