@@ -163,6 +163,10 @@ Explicit AutoTeam request
         ↓  ← [Fix loop: up to 3 rounds, minimal-change rule]
   Documentation ──→ docs/ + AGENTS.md
         ↓
+  Work Chunk evidence ──→ chunk.md (commit record)
+        ↓
+  Git commit to new branch
+        ↓
   PR created locally (awaiting git push)
         ↓
   ✅ Done
