@@ -2,7 +2,10 @@
   "name": "autoteam",
   "version": "3.0.0",
   "description": "Autonomous AI development team. Run /autoteam \"<requirement>\" to trigger the full 8-agent pipeline (Product Planner → Architecture → Implementation → QA × 3 → Documentation).",
-  "author": "AutoTeam",
+  "author": {
+    "name": "AutoTeam",
+    "email": "autoteam@nangenx.com"
+  },
   "repository": "https://github.com/NangenX/autoteam",
   "homepage": "https://github.com/NangenX/autoteam",
   "tags": ["development", "automation", "pipeline", "multi-agent"],
