@@ -1,0 +1,11 @@
+{
+  "name": "autoteam",
+  "version": "3.0.0",
+  "description": "Autonomous AI development team. Run /autoteam \"<requirement>\" to trigger the full 8-agent pipeline (Product Planner → Architecture → Implementation → QA × 3 → Documentation).",
+  "author": "AutoTeam",
+  "repository": "https://github.com/yourusername/autoteam",
+  "homepage": "https://github.com/yourusername/autoteam",
+  "tags": ["development", "automation", "pipeline", "multi-agent"],
+  "platform": "claude_code",
+  "min_claude_version": "0.5.0"
+}
