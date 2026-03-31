@@ -131,6 +131,16 @@ next_action: <what happens next>
 ### Step 0 — Human-AI Brainstorming
 **性质：强制 gate — 必须人类批准 plan.md 才能继续**
 
+0. **检查现有 plan.md：**
+   - If `.autoteam/workspace/plan.md` exists:
+     - Extract `APPROVED:` value
+     - If `APPROVED: true` AND requirement matches plan goals:
+       - Print: `[Step 0/11] ✓ Using existing approved plan.md (skip)`
+       - Skip to Step 1
+     - If `APPROVED: false` or no file:
+       - Proceed to brainstorming (resume from last state)
+   - If no file exists: proceed to brainstorming
+
 1. Orchestration 以 Socratic 方式展示 requirement，询问人类澄清性问题：
    - 目标用户是谁？使用场景？
    - 核心功能优先级？哪些必须要有，哪些可以不要？
