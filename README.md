@@ -27,26 +27,34 @@ Copilot 版本通过仓库指令文件触发：`.github/copilot-instructions.md`
 ```
 需求输入
   ↓
-产品规划师 ──→ requirement-card.yaml（结构化验收标准）
+[Step 0] 人机头脑风暴 ──→ plan.md（人类批准）
+  ↓  ← [追问澄清 + 快速确认，plan 过期时触发]
+产品规划师 ──→ requirement-card.yaml（含 Features）
   ↓
 架构设计师 ──→ adr.md + interface-contracts.yaml
   ↓  ← [讨论轮次：最多 3 轮]
-实现工程师 ──→ 源代码
+Sprint 契约 ──→ 实现与 QA 协商范围
+  ↓
+实现工程师（按 Feature 执行）
+  ├─ FEAT-001: 实现 ──→ QA 测试（done_criteria）──→ verified
+  ├─ FEAT-002: 实现 ──→ QA 测试（done_criteria）──→ verified
+  └─ ...
   ↓
 多门控检查（Gates A-F）──→ 机械性违规校验 + 棘轮模式（棕地项目）
   ↓
-QA 委员会（3 智能体 + 多模型投票）
+QA 委员会（2 智能体：安全 + 质量）
   QA 安全  ──→ security-report.md
   QA 质量  ──→ quality-report.md
-  QA 测试  ──→ test-report.md
   ↓  ← [修复循环：最多 3 轮，最小变更原则]
 文档智能体 ──→ docs/ + AGENTS.md
   ↓
-Work Chunk 证据文件 ──→ chunk.md（提交存证）
+Work Chunk 证据 ──→ chunk.md（提交存证）
   ↓
 Git 提交到新分支
   ↓
-✅ 完成
+PR 创建到本地分支
+  ↓
+✅ 完成（用户执行 git push 提交 PR）
 ```
 
 ### 团队成员
@@ -70,9 +78,13 @@ Git 提交到新分支
 
 | 特性 | 说明 |
 |---|---|
+| **人机头脑风暴（Step 0）** | AI 追问澄清需求 → 生成 plan.md → 人类批准后才能继续 |
+| **plan.md 过期检测** | 代码变化 / 7 天过期时触发轻量确认，人类回答 4 个问题即可快速续期 |
+| **Feature 执行模式** | 按 Feature 顺序执行，每个 Feature 经 QA 测试验证后自动下一个 |
+| **PR 本地创建** | 所有 Feature verified 后创建 PR 到本地，用户执行 `git push` 提交 |
 | **多门控检查（Gates A-F）** | Gate A 格式/Lint → B 导入边界 → C 结构规则 → D 快照 → E 黄金输出 → F 数值等价 |
 | **棘轮模式** | 棕地/遗留/重构项目中，允许现有违规，阻止新增违规 |
-| **委员会投票** | 每个 QA 智能体输出 ACCEPT/REJECT 票，需 ≥2/3 ACCEPT 才能通过 |
+| **委员会投票** | QA 安全 + 质量各一票，需 2/2 ACCEPT 才能通过 |
 | **AGENTS.md 自动生成** | 文档智能体自动检测 harness 命令，生成项目根目录的 AGENTS.md |
 | **Work Chunk 证据** | 每次提交前生成 chunk.md，记录意图、前置条件、QA 结果、回滚方案 |
 
@@ -113,31 +125,49 @@ Use AutoTeam to implement: build a REST API for task management
 
 The Copilot version is activated by repository instruction files: `.github/copilot-instructions.md` and `.github/instructions/autoteam.instructions.md`.
 
+### Claude Code Commands
+
+These slash commands are available in Claude Code. Copilot CLI does **not** support `/autoteam`-style slash commands — use natural-language triggers instead.
+
+| Command | Description |
+|---|---|
+| `/autoteam "requirement"` | Full pipeline: brainstorm → implement → QA → PR |
+| `/autoteam-plan "requirement"` | Brainstorming only: generate approved plan.md |
+| `/autoteam:status` | Check pipeline status |
+
+Use `/autoteam-plan` to pre-generate a plan for complex projects, or when you want to review the plan before committing to the full pipeline.
+
 ### How It Works
 
 ```
 Explicit AutoTeam request
         ↓
-  Orchestration (Opus)
-        ↓
-  Product Planner ──→ requirement-card.yaml
+  [Step 0] Human-AI Brainstorming ──→ plan.md (human approved)
+        ↓  ← [Socratic questions + quick review if stale]
+  Product Planner ──→ requirement-card.yaml (with Features)
         ↓
   Architecture ──→ adr.md + interface-contracts.yaml
         ↓  ← [Discussion: up to 3 rounds]
-  Implementation ──→ source code
+  Sprint Contract ──→ Implementation + QA negotiate scope
+        ↓
+  Implementation (Feature-by-Feature)
+    FEAT-001: Implement ──→ QA Test (done_criteria) ──→ verified
+    FEAT-002: Implement ──→ QA Test (done_criteria) ──→ verified
+    ...
         ↓
   Multi-Gate Check (Gates A-F) ──→ gate-report.md
         ↓
-  QA Council (3 agents, multi-model voting)
+  QA Council (2 agents: Security + Quality)
     QA Security ──→ security-report.md
     QA Quality  ──→ quality-report.md
-    QA Test     ──→ test-report.md
         ↓  ← [Fix loop: up to 3 rounds, minimal-change rule]
   Documentation ──→ docs/ + AGENTS.md
         ↓
-  Work Chunk Evidence ──→ chunk.md
+  Work Chunk evidence ──→ chunk.md (commit record)
         ↓
-  Git commit on new branch
+  Git commit to new branch
+        ↓
+  PR created locally (awaiting git push)
         ↓
   ✅ Done
 ```
@@ -157,9 +187,13 @@ Explicit AutoTeam request
 
 ### Key Design Decisions
 
+**Human-AI Brainstorming (Step 0)** — Before any code, Orchestration asks Socratic questions to clarify requirements, generates `plan.md`, and requires human approval. Plan can be re-approved via quick review if code changes or 7 days pass.
+
+**Feature-by-Feature execution** — Each Feature (FEAT-001, FEAT-002, ...) is implemented and QA-tested sequentially. Each Feature requires QA Test verification before moving to the next. Creates auditable progress.
+
 **Multi-Gate Check (A-F)** — Before QA agents run, deterministic gates check lint, import boundaries, structural rules, snapshots, golden outputs, and numerical equivalence. Gates B-F are conditional on project config. Ratchet mode allows existing violations in brownfield projects while blocking new ones.
 
-**Council voting** — Each QA agent outputs a vote (ACCEPT/REJECT) with rationale and confidence. ALL_CLEAR requires ≥2/3 ACCEPT + zero CRITICAL + score ≥3.0/5. Copilot CLI uses GPT for QA Quality to provide cross-model perspective.
+**Council voting (2/2)** — QA Security and QA Quality each output a vote (ACCEPT/REJECT). ALL_CLEAR requires 2/2 ACCEPT + zero CRITICAL + score ≥3.0/5. Note: QA Test ran per-Feature during Implementation step. Copilot CLI currently uses 3-agent QA Council (Security/Quality/Test) with ≥2/3 ACCEPT as defined in `.github/instructions/autoteam.instructions.md`.
 
 **Work Chunk evidence** — Before every commit, `chunk.md` is generated with intent, preconditions, gate results, council scores, and rollback instructions. Committed alongside code for auditable history.
 
@@ -170,6 +204,8 @@ Explicit AutoTeam request
 **Bounded loops** — Discussion phase and QA fix loop both capped at 3 rounds.
 
 **AGENTS.md** — Documentation agent auto-detects the harness command (justfile/package.json/pyproject.toml/Makefile) and generates `AGENTS.md` at project root for future AI agent onboarding.
+
+**Local PR creation** — After all Features verified and docs written, PR is created locally but NOT pushed. User runs `git push` to submit when ready.
 
 ### Plugin Structure (v3.0)
 
@@ -184,6 +220,7 @@ AutoTeam is now a standard Claude Code plugin with multi-platform support:
 │   └── SKILL.md             # Canonical skill file (v3.0, self-contained)
 ├── commands/
 │   ├── autoteam.md          # /autoteam slash command
+│   ├── autoteam-plan.md     # /autoteam-plan slash command
 │   └── autoteam-status.md   # /autoteam:status slash command
 ├── scripts/
 │   ├── init-session.{sh,ps1}       # Session initialization

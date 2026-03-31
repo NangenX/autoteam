@@ -14,25 +14,85 @@ Act as the **Orchestration Agent** for the AutoTeam pipeline.
 
 - Drive the multi-agent workflow from requirement to delivery.
 - Use `.autoteam/workspace/` as the inter-agent file protocol.
-- Preserve the existing rules: bounded discussion loops, minimal-change fix mode, escalation for architectural changes, deterministic gates before QA, and documentation generation at the end.
+- Preserve existing rules: bounded discussion loops, minimal-change fix mode, escalation for architectural changes, deterministic gates before QA, and documentation generation at the end.
 
 ## Execution Model
 
-Follow the detailed pipeline and file schemas in `skills/autoteam.md` as the extended reference/template.
+Follow the detailed pipeline and file schemas in `skills/autoteam/SKILL.md` as the extended reference/template.
 
-In particular, preserve these AutoTeam behaviors:
+In particular, preserve these AutoTeam v3.0 behaviors:
 
-1. Product Planner writes `requirement-card.yaml`
-2. Architecture writes `adr.md` and `interface-contracts.yaml`
-3. Implementation writes code against the approved architecture
-4. Multi-Gate Check runs before QA
-5. QA Council produces `security-report.md`, `quality-report.md`, and `test-report.md`
-6. Aggregation requires:
+### Pipeline Steps
+
+1. **Human-AI Brainstorming** — Ask Socratic clarifying questions, generate `plan.md`, require human approval before proceeding
+2. **Product Planner** writes `requirement-card.yaml` with Features derived from plan.md
+3. **Architecture** writes `adr.md` and `interface-contracts.yaml`
+4. **Discussion** — Up to 3 rounds between Architecture and Product Planner if needed
+5. **Sprint Contract** — Implementation and QA negotiate scope for each Feature
+6. **Implementation (Feature-by-Feature)** — Each Feature: Implementation → QA Test verification → next Feature
+   - FEAT-001: Implement → QA Test (done_criteria) → verified
+   - FEAT-002: Implement → QA Test (done_criteria) → verified
+   - ...
+7. **Multi-Gate Check** runs before QA
+8. **QA Council** (2 agents: Security + Quality) — Note: Copilot CLI uses 3-agent council (Security/Quality/Test) with ≥2/3 ACCEPT
+   - QA Security writes `security-report.md`
+   - QA Quality writes `quality-report.md`
+   - QA Test ran per-Feature in step 6
+9. **Aggregation** requires:
    - zero CRITICAL findings
    - overall score >= 3.0/5
-   - council result >= 2/3 ACCEPT
-7. Documentation writes project docs and `AGENTS.md`
-8. Git step writes `chunk.md` evidence before commit
+   - council result >= 2/3 ACCEPT (Copilot CLI) or 2/2 ACCEPT (Claude Code)
+10. **Documentation** writes project docs and `AGENTS.md`
+11. **Git Integration** — Creates `chunk.md` evidence, commits to new branch, creates PR locally
+12. User runs `git push` to submit the PR
+
+### Feature Item Format
+
+```markdown
+## Features
+
+### FEAT-001: <feature name>
+- scope: "<scope description>"
+- status: pending | in_progress | done | verified
+- done_criteria:
+  - [ ] DC-001: <behavior description>
+  - [ ] DC-002: <behavior description>
+
+### FEAT-002: <feature name>
+- scope: "<scope description>"
+- status: pending
+- done_criteria:
+  - [ ] DC-001: <behavior description>
+```
+
+### plan.md Format
+
+```markdown
+# Plan: <requirement title>
+
+## Goals
+- [human-confirmed high-level goals]
+
+## Scope
+### In
+- [confirmed features]
+
+### Out
+- [explicitly excluded features]
+
+## Features
+### FEAT-001: <name>
+- scope: "<description>"
+- status: pending
+- done_criteria:
+  - [ ] DC-001: <testable behavior>
+
+---
+APPROVED: true/false
+Approved-by: <human>
+Approved-at: <ISO 8601>
+Last-review-at: <ISO 8601>
+```
 
 ## Copilot-Specific Model Routing
 
@@ -54,7 +114,7 @@ Rationale:
 - `QA Quality` uses `gpt-5.1` as the Council's heterodox reviewer
 - `QA Test` stays on Claude Sonnet for consistency against acceptance criteria
 
-If a preferred model is unavailable in the current Copilot environment, fall back to the closest available model in the same family. Preserve the same intent: Security/Test favor stability; Quality provides diversity when possible.
+If a preferred model is unavailable in the current Copilot environment, fall back to the closest available model in the same family.
 
 ## Repository-Native Entry Guidance
 
