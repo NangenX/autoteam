@@ -11,7 +11,7 @@
 - [x] Issue 1: Step numbering denominator wrong (14 steps but /11) — Denominator changed to /11 (correct for highest step)
 - [x] Issue 2: Step 2.5 prints as [Step 0.5/8] — Fixed to [Step 2.5/11]
 - [x] Issue 3: Working tree dirty logic uses AND instead of OR — Fixed with OR condition
-- [x] Issue 4: gh pr create --body syntax invalid — Fixed to --body (正确 flag)
+- [x] Issue 4: gh pr create --body syntax invalid — Fixed to --body (correct flag)
 - [x] Issue 5: Missing flow after Architecture re-run — Added "After Architecture re-run → dispatch Implementation in FIX MODE"
 - [x] Issue 6: Discussion Node 2 referenced but not defined — Renamed to "Escalation Review"
 - [x] Issue 7: Multiple output files missing from ownership table — Added docs/ files owned by Documentation

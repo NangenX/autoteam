@@ -256,12 +256,12 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
   - Skip generation
 - If file exists AND (`last_commit_hash != current_commit_hash` OR NOT `working_tree_clean`):
   - Print: `[Step 2.5/11] ⚠️ Code summary stale — regenerating`
-  - Proceed to (re)generate
+  - Proceed to generation steps below
 - If no file exists:
   - Print: `[Step 2.5/11] Generating code summary`
-  - Proceed to (re)generate
+  - Proceed to generation steps below
 
-**(Re)Generate steps:**
+**Generation steps (for both new and stale summaries):**
 - Detect language/framework from file extensions or config files
 - Build summary: project overview, source files, key modules, dependencies, API surface, data models
 - Write `docs/CODE-SUMMARY.md` with this exact header:
@@ -697,7 +697,7 @@ functions: []
 - Follow tech stack naming conventions (Python: snake_case, JS: camelCase, Go: PascalCase exports)
 - No comments restating what code does; comment only non-obvious logic
 - No deprecated APIs; no error handling for impossible scenarios
-Before marking the module done, verify the deliverable passes all four checks:
+- Before marking the module done, verify the deliverable passes all four checks:
   1. **Contract conformance:** every interface-contracts endpoint/command/function exists with the required names, fields, parameters, and return/error shapes
   2. **Behavioral conformance:** every assigned AC-XXX is implemented and every DC-XXX is mapped to a real contract or entrypoint behavior
   3. **Evidence conformance:** tests exercise the real entrypoint/code path with realistic parameters and assert the required outcome; test names or sprint-contract text alone are not enough
