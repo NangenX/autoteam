@@ -29,30 +29,30 @@ Copilot 版本通过仓库指令文件触发：`.github/copilot-instructions.md`
   ↓
 [Step 0] 人机头脑风暴 ──→ plan.md（人类批准）
   ↓  ← [追问澄清 + 快速确认，plan 过期时触发]
-产品规划师 ──→ requirement-card.yaml（含 Features）
+[Step 2] 初始化工作区
   ↓
-架构设计师 ──→ adr.md + interface-contracts.yaml
+[Step 2.5] 代码总结（自动生成 docs/CODE-SUMMARY.md）
+  ↓
+[Step 3] 产品规划师 ──→ requirement-card.yaml（含 Features）
+  ↓
+[Step 4] 架构设计师 ──→ adr.md + interface-contracts.yaml
   ↓  ← [讨论轮次：最多 3 轮]
-Sprint 契约 ──→ 实现与 QA 协商范围
+[Step 5.5] Sprint 契约 ──→ 实现与 QA 协商范围
   ↓
-实现工程师（按 Feature 执行）
+[Step 6] 实现工程师（按 Feature 执行）
   ├─ FEAT-001: 实现 ──→ QA 测试（done_criteria）──→ verified
   ├─ FEAT-002: 实现 ──→ QA 测试（done_criteria）──→ verified
   └─ ...
   ↓
-多门控检查（Gates A-F）──→ 机械性违规校验 + 棘轮模式（棕地项目）
+[Step 6.5] 多门控检查（Gates A-F）──→ 机械性违规校验 + 棘轮模式（棕地项目）
   ↓
-QA 委员会（2 智能体：安全 + 质量）
+[Step 7] QA 委员会（2 智能体：安全 + 质量）
   QA 安全  ──→ security-report.md
   QA 质量  ──→ quality-report.md
   ↓  ← [修复循环：最多 3 轮，最小变更原则]
-文档智能体 ──→ docs/ + AGENTS.md
+[Step 10] 文档智能体 ──→ docs/ + AGENTS.md
   ↓
-Work Chunk 证据 ──→ chunk.md（提交存证）
-  ↓
-Git 提交到新分支
-  ↓
-PR 创建到本地分支
+[Step 10.5] Work Chunk 证据 + Git PR ──→ PR 创建到本地分支
   ↓
 ✅ 完成（用户执行 git push 提交 PR）
 ```
