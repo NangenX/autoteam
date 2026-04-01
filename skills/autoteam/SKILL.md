@@ -309,10 +309,10 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist, but must validate each item against acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work done
-5. QA Test uses done_criteria as an evaluation checklist only after mapping each item to acceptance criteria, `interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
+4. Implementation uses done_criteria as its implementation checklist, but must validate each item against acceptance criteria, `.autoteam/workspace/interface-contracts.yaml`, and real code entrypoints/parameters before marking work done
+5. QA Test uses done_criteria as an evaluation checklist only after mapping each item to acceptance criteria, `.autoteam/workspace/interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
 
-- Print: `[Step 5.5/11] ✓ Sprint contract agreed → sprint-contract.yaml`
+- Print: `[Step 5.5/11] ✓ Sprint contract agreed → .autoteam/workspace/sprint-contract.yaml`
 
 **Skip conditions:** If only 1 module with ≤3 acceptance criteria, skip contract (too simple to need negotiation).
 
@@ -666,7 +666,7 @@ functions: []
 ### 5.3 Implementation Agent
 
 **Role:** Write production code implementing the architecture exactly. No design decisions.
-**Input:** `adr.md`, `interface-contracts.yaml`, `requirement-card.yaml`; in FIX MODE also `fix-instructions.md`
+**Input:** `.autoteam/workspace/adr.md`, `.autoteam/workspace/interface-contracts.yaml`, `.autoteam/workspace/requirement-card.yaml`; in FIX MODE also `.autoteam/workspace/fix-instructions.md`
 **Output:** Project source code files at paths from module `output_files`
 
 #### STEP 0: ORIENT (MANDATORY — every invocation)
@@ -684,12 +684,12 @@ functions: []
 - Follow tech stack naming conventions (Python: snake_case, JS: camelCase, Go: PascalCase exports)
 - No comments restating what code does; comment only non-obvious logic
 - No deprecated APIs; no error handling for impossible scenarios
-- Before marking the module done, verify the deliverable passes all four checks:
+<- Before marking the module done, verify the deliverable passes all four checks:
   1. **Contract conformance:** every interface-contracts endpoint/command/function exists with the required names, fields, parameters, and return/error shapes
   2. **Behavioral conformance:** every assigned AC-XXX is implemented and every DC-XXX is mapped to a real contract or entrypoint behavior
   3. **Evidence conformance:** tests exercise the real entrypoint/code path with realistic parameters and assert the required outcome; test names or sprint-contract text alone are not enough
   4. **Output completeness:** all files listed in the module's `output_files` list in `requirement-card.yaml` exist and no silently added feature extends beyond the agreed scope
-- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior through the actual contract/entrypoint it refers to; if a DC cannot be mapped cleanly, write `escalation.md`
+- Self-check: for each DC-XXX in `.autoteam/workspace/sprint-contract.yaml`, verify the code satisfies the stated behavior through the actual contract/entrypoint it refers to; if a DC cannot be mapped cleanly, write `escalation.md`
 - If something seems missing: write `escalation.md`, do NOT add it silently
 
 #### FIX MODE (after QA loop)
@@ -806,19 +806,19 @@ confidence: HIGH | MEDIUM | LOW
 ### 5.6 QA Test Agent
 
 **Role:** Verify test coverage maps to acceptance criteria. Run tests. Report gaps.
-**Input:** All project files + `.autoteam/workspace/requirement-card.yaml`
+**Input:** All project files + `.autoteam/workspace/requirement-card.yaml` + `.autoteam/workspace/interface-contracts.yaml` + `.autoteam/workspace/sprint-contract.yaml`
 **Output:** `.autoteam/workspace/qa-reports/test-report.md`
 
 **Process:**
-1. Read acceptance criteria from requirement-card.yaml
-2. Read `interface-contracts.yaml` — identify the real endpoint/command/function/field contracts for the assigned Feature
-3. Read sprint-contract.yaml — load done_criteria per module as additional test targets
+1. Read acceptance criteria from `.autoteam/workspace/requirement-card.yaml`
+2. Read `.autoteam/workspace/interface-contracts.yaml` — identify the real endpoint/command/function/field contracts for the assigned Feature
+3. Read `.autoteam/workspace/sprint-contract.yaml` — load done_criteria per module as additional test targets
 4. For each AC-XXX and DC-XXX:
    - Map it to a real interface-contract or implementation entrypoint
    - Verify the mapped evidence is sufficient to support the four Implementation completion checks: contract conformance, behavioral conformance, evidence conformance, and output completeness
    - Search tests for a covering test that would fail if the criterion were violated
    - Covering = invokes the real code path/entrypoint with meaningful parameters and asserts the specific behavior (not just "no exception")
-   - Do NOT mark PASS from sprint-contract wording alone; if the criterion cannot be mapped to `interface-contracts.yaml` or executable implementation evidence, report contract drift or ambiguity
+   - Do NOT mark PASS from sprint-contract wording alone; if the criterion cannot be mapped to `.autoteam/workspace/interface-contracts.yaml` or executable implementation evidence, report contract drift or ambiguity
 5. When tests are weak or missing, inspect implementation code to confirm the actual callable entrypoint, parameters, and response/error contract the test should exercise
 6. Run test suite via Bash (pytest, npm test, go test, etc.)
 7. Capture: command, exit code, pass/fail counts, failure output
@@ -885,7 +885,7 @@ If the project is a web application (has api_endpoints or serves HTML):
 ### 5.7 Documentation Agent
 
 **Role:** Write clear, accurate documentation for the delivered project.
-**Input:** All project code + `requirement-card.yaml` + `adr.md` + `interface-contracts.yaml`
+**Input:** All project code + `.autoteam/workspace/requirement-card.yaml` + `.autoteam/workspace/adr.md` + `.autoteam/workspace/interface-contracts.yaml`
 **Output:** `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/API.md` (if API endpoints exist), `AGENTS.md` (project root)
 
 **docs/README.md** (required sections):
