@@ -140,7 +140,7 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist, but must reconcile each item against acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work `done`
+4. Implementation uses done_criteria as its implementation checklist, but must reconcile each item against acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work done
 5. QA Test uses done_criteria as an evaluation checklist only after mapping each item to acceptance criteria, `interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
 
 - Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
@@ -617,7 +617,7 @@ Passing: N | Failing: N
 
 ## Sprint Contract Verification
 | Criterion | Behavior | Contract / Entrypoint | Status | Evidence |
-| DC-001 | POST /auth/login returns 200 + JWT | POST /auth/login | PASS/FAIL/DRIFT | test_login_success |
+| DC-001 | POST /auth/login returns 200 + JWT | POST /auth/login | PASS/FAIL/DRIFT (`DRIFT` = contract text cannot be cleanly mapped to contracts/code) | test_login_success |
 
 ## Scores
 test_coverage: X/5

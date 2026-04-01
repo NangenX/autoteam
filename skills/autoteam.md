@@ -452,7 +452,11 @@ modules: []  # Architecture fills this
 - Implement EXACTLY what contracts specify; no extra features
 - Write unit tests alongside (success + error per endpoint, ≥1 test per AC)
 - Follow stack naming conventions; minimal comments; no deprecated APIs
-- Before marking the module done, verify four checks: contract conformance (all contract items exist with correct names/params/shapes), behavioral conformance (all ACs implemented and each DC mapped to a real contract/entrypoint), evidence conformance (tests hit real paths with meaningful params and assertions), and output completeness (all `output_files` exist with no silent scope creep)
+- Before marking the module done, verify the deliverable passes all four checks:
+  1. **Contract conformance:** all contract items exist with the required names, parameters, and response/error shapes
+  2. **Behavioral conformance:** all assigned ACs are implemented and each DC maps to a real contract or entrypoint behavior
+  3. **Evidence conformance:** tests hit real paths with meaningful parameters and assertions; test names or sprint-contract text alone are not enough
+  4. **Output completeness:** all `output_files` exist and no silently added feature extends beyond the agreed scope
 - Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior through the actual contract/entrypoint it refers to; if a DC cannot be mapped cleanly, write `escalation.md`
 - Missing something? Write `escalation.md`, don't add silently
 
@@ -554,7 +558,7 @@ confidence: HIGH | MEDIUM | LOW
 - Test Run Results (command, exit code, pass/fail counts)
 - Findings table with Fix column
 - Acceptance Criteria Coverage Map (Criterion | Status | Test)
-- Sprint Contract Verification (DC-XXX | Behavior | Contract/Entrypoint | PASS/FAIL/DRIFT | Evidence)
+- Sprint Contract Verification (DC-XXX | Behavior | Contract/Entrypoint | PASS/FAIL/DRIFT where DRIFT means the contract text cannot be cleanly mapped to contracts/code | Evidence)
 - **Scores:** `test_coverage: X/5`, `functionality: X/5` with 1-2 sentence rationale per score
 - `ALL_CLEAR: true` only if zero CRITICAL
 
