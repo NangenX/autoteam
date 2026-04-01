@@ -61,7 +61,8 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/requirement-card.yaml` | Product Planner |
 | `.autoteam/workspace/adr.md` | Architecture |
 | `.autoteam/workspace/interface-contracts.yaml` | Architecture |
-| `.autoteam/workspace/discussion/round-N-*.md` | Orchestration |
+| `.autoteam/workspace/discussion/round-N-arch.md` | Architecture |
+| `.autoteam/workspace/discussion/round-N-planner.md` | Product Planner |
 | `.autoteam/workspace/discussion/consensus.md` | Orchestration |
 | `.autoteam/workspace/qa-reports/security-report.md` | QA Security |
 | `.autoteam/workspace/qa-reports/quality-report.md` | QA Quality |
@@ -75,7 +76,11 @@ All inter-agent communication happens through files in `.autoteam/workspace/`. N
 | `.autoteam/workspace/chunk.md` | Orchestration |
 | `.autoteam/workspace/escalation.md` | Implementation |
 | `.autoteam/workspace/plan.md` | Orchestration (write) + Human (approve) |
-| `docs/CODE-SUMMARY.md` | Orchestration |
+| `docs/CODE-SUMMARY.md` | Orchestration (read by Documentation) |
+| `docs/README.md` | Documentation |
+| `docs/ARCHITECTURE.md` | Documentation |
+| `docs/API.md` | Documentation |
+| `AGENTS.md` | Documentation |
 
 ### Rules
 - Write atomically — no partial files
@@ -115,13 +120,14 @@ next_action: <what happens next>
 - Step 0: Human-AI Brainstorming (plan.md approval)
 - Step 1: Validate plan.md
 - Step 2: Initialize Workspace
+- Step 2.5: Code Summarization
 - Step 3: Product Planner
 - Step 4: Architecture
 - Step 5: Discussion Node 1
 - Step 5.5: Sprint Contract
-- Step 6: Implementation
+- Step 6: Implementation (Feature-by-Feature)
 - Step 6.5: Multi-Gate Check
-- Step 7: QA Pipeline
+- Step 7: QA Pipeline (Security + Quality)
 - Step 8: Aggregate QA Results
 - Step 9: QA Loop Decision
 - Step 10: Documentation
@@ -136,7 +142,7 @@ next_action: <what happens next>
      - Run `git diff --stat --since="<last_review_at>"`
      - Check trigger conditions (max_age_days, max_code_changes, max_new_files)
      - If NO trigger satisfied:
-       - Print: `[Step 0/11] ✓ Using existing approved plan.md (skip)`
+       - Print: `[Step 0/11] ✓ Plan approved (skip brainstorming) → Step 1`
        - Skip to Step 1
      - If ANY trigger satisfied:
        - Print: `[Step 0/11] ⚠️ Plan may be stale — quick review`
@@ -246,19 +252,25 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
 - Run `git status --porcelain` to check if working tree is clean
   - `working_tree_clean = (output is empty)`
 - If file exists AND `last_commit_hash == current_commit_hash` AND `working_tree_clean`:
-  - Print: `[Step 0.5/8] ✓ Code summary fresh (skip)`
+  - Print: `[Step 2.5/11] ✓ Code summary fresh (skip)`
   - Skip generation
-- Otherwise:
-  - Scan project source files (exclude: `.autoteam/`, `node_modules/`, `__pycache__/`, `.git/`, `venv/`, `.venv/`, `vendor/`)
-  - Detect language/framework from file extensions or config files
-  - Build summary: project overview, source files, key modules, dependencies, API surface, data models
-  - Write `docs/CODE-SUMMARY.md` with this exact header:
-    ```
-    **Generated:** <ISO 8601 timestamp>
-    **Git Commit:** <commit hash>
-    **Working Tree:** clean | dirty
-    ```
-  - Print: `[Step 0.5/8] ✓ Code summary generated`
+- If file exists AND (`last_commit_hash != current_commit_hash` OR NOT `working_tree_clean`):
+  - Print: `[Step 2.5/11] ⚠️ Code summary stale — regenerating`
+  - Proceed to generation steps below
+- If no file exists:
+  - Print: `[Step 2.5/11] Generating code summary`
+  - Proceed to generation steps below
+
+**Generation steps (for both new and stale summaries):**
+- Detect language/framework from file extensions or config files
+- Build summary: project overview, source files, key modules, dependencies, API surface, data models
+- Write `docs/CODE-SUMMARY.md` with this exact header:
+  ```
+  **Generated:** <ISO 8601 timestamp>
+  **Git Commit:** <commit hash>
+  **Working Tree:** clean | dirty
+  ```
+- Print: `[Step 2.5/11] ✓ Code summary (re)generated`
 
 ### Step 3 — Dispatch Product Planner
 - Dispatch subagent with `<REQUIREMENT>` and the **Product Planner** definition (Section 5.1)
@@ -273,12 +285,12 @@ Validate `<REQUIREMENT>`. If empty/whitespace/nonsensical: stop with `[ERROR] In
 - Print: `[Step 4/11] ✓ Architecture complete → adr.md + interface-contracts.yaml`
 
 ### Step 5 — Discussion Node 1 (Architecture vs Product Planner)
-- Read both `adr.md` and `requirement-card.yaml`
+- Read both `.autoteam/workspace/adr.md` and `.autoteam/workspace/requirement-card.yaml`
 - If architecture doesn't address all acceptance_criteria → enter discussion (max 3 rounds)
 - Each round: Architecture writes `round-N-arch.md`, Product Planner writes `round-N-planner.md`
 - Exit when `APPROVED` appears, or after round 3 (Orchestration writes `consensus.md` with binding decision)
-- If no contradiction: skip entirely
-- Print: `[Step 5/11] ✓ Architecture-Planner alignment verified`
+- If no contradiction: skip entirely; Print: `[Step 5/11] Skip (no contradictions found)`
+- If contradiction resolved or consensus reached: Print: `[Step 5/11] ✓ Architecture-Planner alignment verified`
 
 ### Step 5.5 — Sprint Contract Negotiation
 Before Implementation writes any code, Orchestration facilitates a contract between Implementation and QA Test:
@@ -314,7 +326,7 @@ modules:
 
 - Print: `[Step 5.5/11] ✓ Sprint contract agreed → .autoteam/workspace/sprint-contract.yaml`
 
-**Skip conditions:** If only 1 module with ≤3 acceptance criteria, skip contract (too simple to need negotiation).
+**Skip conditions:** Skip if: module_count == 1 AND total_acceptance_criteria <= 3 (too simple to need negotiation).
 
 ### Step 6 — Dispatch Implementation (Feature-by-Feature)
 **Process Features sequentially — each Feature: Implementation → QA verified → next Feature**
@@ -405,9 +417,10 @@ Dispatch two QA subagents **in sequence**:
 - Collect quality scores from each QA report and record in aggregated-report.md header:
   ```
   ## Quality Scores (Round N)
-  Security Posture: X/5 | Code Quality: X/5 | Design Coherence: X/5 | Test Coverage: X/5 | Functionality: X/5
+  Security Posture: X/5 | Code Quality: X/5 | Design Coherence: X/5 | Test Coverage: X/5 (sourced from per-Feature QA in Step 6) | Functionality: X/5
   Overall: X.X/5 (average)
   ```
+- Note: Test Coverage score is sourced from per-Feature QA Test verification in Step 6, not from Step 7 QA Pipeline
 - If scores decrease between QA rounds, flag as `[REGRESSION]` in aggregated report
 - Write `.autoteam/workspace/fix-instructions.md` listing every CRITICAL as structured fix task:
 ```yaml
@@ -426,9 +439,9 @@ fixes:
 **ALL_CLEAR=true** (=2/2 council ACCEPT + zero CRITICAL + score ≥ 3.0/5) → go to Step 10
 
 **ALL_CLEAR=false** →
-- Discussion Node 2: Implementation confirms fix scope or writes `escalation.md`
-- If escalation → re-run Architecture with escalation as input
-- Dispatch Implementation in **FIX MODE** (Section 5.3)
+- **Escalation Review:** Implementation confirms fix scope or writes `escalation.md`
+- If escalation → re-run Architecture (Step 4) with escalation as input
+- After Architecture re-run → dispatch Implementation in **FIX MODE** (Section 5.3)
 - Re-run QA Pipeline (Step 7) + re-aggregate (Step 8)
 - **Update phase-summary.md** after each fix iteration
 - **Max 3 QA loops.** After 3 with CRITICAL remaining → stop with `[FAILED]`
@@ -481,7 +494,7 @@ After all code and docs are written:
    ```
 4. **Create PR locally** (do NOT push):
    ```
-   gh pr create --draft --title "feat: <title>" --body "..."
+   gh pr create --draft --title "feat: <title>" --body "AutoTeam pipeline — see chunk.md for evidence"
    ```
 5. Print: `[Step 10.5/11] ✓ PR created locally on branch autoteam/<branch-name>`
 6. Print: `🔀 Run 'git push' to push branch and submit PR`
@@ -684,7 +697,7 @@ functions: []
 - Follow tech stack naming conventions (Python: snake_case, JS: camelCase, Go: PascalCase exports)
 - No comments restating what code does; comment only non-obvious logic
 - No deprecated APIs; no error handling for impossible scenarios
-<- Before marking the module done, verify the deliverable passes all four checks:
+- Before marking the module done, verify the deliverable passes all four checks:
   1. **Contract conformance:** every interface-contracts endpoint/command/function exists with the required names, fields, parameters, and return/error shapes
   2. **Behavioral conformance:** every assigned AC-XXX is implemented and every DC-XXX is mapped to a real contract or entrypoint behavior
   3. **Evidence conformance:** tests exercise the real entrypoint/code path with realistic parameters and assert the required outcome; test names or sprint-contract text alone are not enough
