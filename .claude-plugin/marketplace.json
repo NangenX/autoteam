@@ -12,7 +12,7 @@
       "name": "autoteam",
       "identifier": "autoteam",
       "description": "Autonomous AI development team — 8 specialized agents collaborate to analyze, design, implement, test, and document software from a single requirement.",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "source": "./",
       "categories": ["development", "automation", "ai", "pipeline"],
       "author": {

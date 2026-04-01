@@ -1,6 +1,6 @@
 {
   "name": "autoteam",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Autonomous AI development team. Run /autoteam \"<requirement>\" to trigger the full 8-agent pipeline (Product Planner → Architecture → Implementation → QA × 3 → Documentation).",
   "author": {
     "name": "AutoTeam",
