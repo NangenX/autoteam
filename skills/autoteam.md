@@ -146,8 +146,8 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist
-5. QA Test uses done_criteria as its evaluation checklist (in addition to acceptance criteria)
+4. Implementation uses done_criteria as its implementation checklist, but only marks work done after reconciling each item with acceptance criteria, interface contracts, and real code entrypoints/parameters
+5. QA Test uses done_criteria as its evaluation checklist only after mapping each item to acceptance criteria, interface contracts, and executable implementation evidence (not sprint-contract text alone)
 
 - Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
 
@@ -452,7 +452,8 @@ modules: []  # Architecture fills this
 - Implement EXACTLY what contracts specify; no extra features
 - Write unit tests alongside (success + error per endpoint, ≥1 test per AC)
 - Follow stack naming conventions; minimal comments; no deprecated APIs
-- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior
+- Before marking the module done, verify four checks: contract conformance (all contract items exist with correct names/params/shapes), behavioral conformance (all ACs implemented and each DC mapped to a real contract/entrypoint), evidence conformance (tests hit real paths with meaningful params and assertions), and output completeness (all `output_files` exist with no silent scope creep)
+- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior through the actual contract/entrypoint it refers to; if a DC cannot be mapped cleanly, write `escalation.md`
 - Missing something? Write `escalation.md`, don't add silently
 
 #### FIX MODE
@@ -542,16 +543,18 @@ confidence: HIGH | MEDIUM | LOW
 
 **Process:**
 1. Read acceptance criteria from requirement-card.yaml
-2. Read sprint-contract.yaml — load done_criteria per module as additional test targets
-3. For each: find covering test (invokes code path AND asserts specific behavior)
-4. Run test suite (pytest/npm test/go test/etc.), capture results
-5. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
+2. Read interface-contracts.yaml — identify the real endpoint/command/function contracts for the assigned Feature
+3. Read sprint-contract.yaml — load done_criteria per module as additional test targets
+4. For each AC/DC: map it to a real contract or implementation entrypoint, then find a covering test that invokes the real path with meaningful parameters and asserts specific behavior
+5. Do NOT mark PASS from sprint-contract wording alone; if a criterion cannot be mapped to contracts/code, report contract drift or ambiguity
+6. Run test suite (pytest/npm test/go test/etc.), capture results
+7. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Unmappable blocking criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
 
 **Report includes:**
 - Test Run Results (command, exit code, pass/fail counts)
 - Findings table with Fix column
 - Acceptance Criteria Coverage Map (Criterion | Status | Test)
-- Sprint Contract Verification (DC-XXX | Behavior | PASS/FAIL | Evidence)
+- Sprint Contract Verification (DC-XXX | Behavior | Contract/Entrypoint | PASS/FAIL/DRIFT | Evidence)
 - **Scores:** `test_coverage: X/5`, `functionality: X/5` with 1-2 sentence rationale per score
 - `ALL_CLEAR: true` only if zero CRITICAL
 
