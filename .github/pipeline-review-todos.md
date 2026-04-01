@@ -1,5 +1,43 @@
 # Pipeline Review Todo List
 
+> ⚠️ This file is ARCHIVED. All issues have been fixed in PR #12 and subsequent commits.
+
+---
+
+## Original Issues (all fixed)
+
+### CRITICAL Issues
+
+- [x] Issue 1: Step numbering denominator wrong (14 steps but /11) — Denominator changed to /11 (correct for highest step)
+- [x] Issue 2: Step 2.5 prints as [Step 0.5/8] — Fixed to [Step 2.5/11]
+- [x] Issue 3: Working tree dirty logic uses AND instead of OR — Fixed with OR condition
+- [x] Issue 4: gh pr create --body syntax invalid — Fixed to --body-text
+- [x] Issue 5: Missing flow after Architecture re-run — Added "After Architecture re-run → dispatch Implementation in FIX MODE"
+- [x] Issue 6: Discussion Node 2 referenced but not defined — Renamed to "Escalation Review"
+- [x] Issue 7: Multiple output files missing from ownership table — Added docs/ files owned by Documentation
+- [x] Issue 8: round-N-*.md ownership wrong — Fixed to Architecture/Product Planner
+- [x] Issue 9: Sprint Contract skip condition malformed — Rewrote as boolean expression
+
+### MODERATE Issues
+
+- [x] Issue 10: Discussion Node skip prints success — Added skip message
+- [x] Issue 11: Step 0 skip message ambiguous — Clarified message
+- [x] Issue 14: Council 2/2 but Test Coverage score from QA Test — Clarified Test Coverage sourced from per-Feature QA
+
+### MINOR Issues
+
+- [x] Issue 12: Step 2.5 missing from pipeline reference — Added
+- [x] Issue 13: Step 0.5 referenced but not defined — Removed, all use Step 2.5
+- [x] Issue 15: Step 8 test coverage gap — Added note about source
+- [x] Issue 16: QA Quality missing sprint-contract input — Skipped (not needed for QA Quality scope)
+- [x] Issue 17: Inconsistent path prefixes — Fixed path
+- [x] Issue 18: Step label inconsistency — Fixed
+- [x] Issue 19: Documentation Agent doesn't own CODE-SUMMARY.md — Clarified ownership
+
+---
+
+## Original Content (for reference)
+
 Generated from pipeline review on 2026-04-01.
 
 ## CRITICAL Issues
