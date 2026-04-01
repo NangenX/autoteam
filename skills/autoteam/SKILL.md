@@ -309,8 +309,8 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist, but may mark work `done` only after reconciling each item against acceptance criteria, interface-contracts, and real code entrypoints/parameters
-5. QA Test uses done_criteria as an evaluation checklist only after mapping each item to acceptance criteria, interface-contracts, and executable implementation evidence (not sprint-contract text alone)
+4. Implementation uses done_criteria as its implementation checklist, but must reconcile each item against acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work `done`
+5. QA Test uses done_criteria as an evaluation checklist only after mapping each item to acceptance criteria, `interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
 
 - Print: `[Step 5.5/11] ✓ Sprint contract agreed → sprint-contract.yaml`
 
@@ -811,10 +811,11 @@ confidence: HIGH | MEDIUM | LOW
 
 **Process:**
 1. Read acceptance criteria from requirement-card.yaml
-2. Read interface-contracts.yaml — identify the real endpoint/command/function/field contracts for the assigned Feature
+2. Read `interface-contracts.yaml` — identify the real endpoint/command/function/field contracts for the assigned Feature
 3. Read sprint-contract.yaml — load done_criteria per module as additional test targets
 4. For each AC-XXX and DC-XXX:
    - Map it to a real interface-contract or implementation entrypoint
+   - Verify the mapped evidence is sufficient to support the four Implementation completion checks: contract conformance, behavioral conformance, evidence conformance, and output completeness
    - Search tests for a covering test that would fail if the criterion were violated
    - Covering = invokes the real code path/entrypoint with meaningful parameters and asserts the specific behavior (not just "no exception")
    - Do NOT mark PASS from sprint-contract wording alone; if the criterion cannot be mapped to contracts/code, report contract drift or ambiguity

@@ -146,8 +146,8 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist, but only marks work done after reconciling each item with acceptance criteria, interface contracts, and real code entrypoints/parameters
-5. QA Test uses done_criteria as its evaluation checklist only after mapping each item to acceptance criteria, interface contracts, and executable implementation evidence (not sprint-contract text alone)
+4. Implementation uses done_criteria as its implementation checklist, but must reconcile each item with acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work done
+5. QA Test uses done_criteria as its evaluation checklist only after mapping each item to acceptance criteria, `interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
 
 - Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
 
@@ -543,9 +543,9 @@ confidence: HIGH | MEDIUM | LOW
 
 **Process:**
 1. Read acceptance criteria from requirement-card.yaml
-2. Read interface-contracts.yaml — identify the real endpoint/command/function contracts for the assigned Feature
+2. Read `interface-contracts.yaml` — identify the real endpoint/command/function contracts for the assigned Feature
 3. Read sprint-contract.yaml — load done_criteria per module as additional test targets
-4. For each AC/DC: map it to a real contract or implementation entrypoint, then find a covering test that invokes the real path with meaningful parameters and asserts specific behavior
+4. For each AC/DC: map it to a real contract or implementation entrypoint, verify the evidence supports contract/behavior/evidence/output-completeness checks, then find a covering test that invokes the real path with meaningful parameters and asserts specific behavior
 5. Do NOT mark PASS from sprint-contract wording alone; if a criterion cannot be mapped to contracts/code, report contract drift or ambiguity
 6. Run test suite (pytest/npm test/go test/etc.), capture results
 7. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Unmappable blocking criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
