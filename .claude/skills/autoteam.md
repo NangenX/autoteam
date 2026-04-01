@@ -140,8 +140,8 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist
-5. QA Test uses done_criteria as its evaluation checklist (in addition to acceptance criteria)
+4. Implementation uses done_criteria as its implementation checklist, but must validate each item against acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work done
+5. QA Test uses done_criteria as an evaluation checklist only after mapping each item to acceptance criteria, `interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
 
 - Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
 
@@ -461,7 +461,12 @@ functions: []
 - Follow tech stack naming conventions (Python: snake_case, JS: camelCase, Go: PascalCase exports)
 - No comments restating what code does; comment only non-obvious logic
 - No deprecated APIs; no error handling for impossible scenarios
-- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior
+- Before marking the module done, verify the deliverable passes all four checks:
+  1. **Contract conformance:** every interface-contracts endpoint/command/function exists with the required names, fields, parameters, and return/error shapes
+  2. **Behavioral conformance:** every assigned AC-XXX is implemented and every DC-XXX is mapped to a real contract or entrypoint behavior
+  3. **Evidence conformance:** tests exercise the real entrypoint/code path with realistic parameters and assert the required outcome; test names or sprint-contract text alone are not enough
+  4. **Output completeness:** all files listed in the module's `output_files` list in `requirement-card.yaml` exist and no silently added feature extends beyond the agreed scope
+- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior through the actual contract/entrypoint it refers to; if a DC cannot be mapped cleanly, write `escalation.md`
 - If something seems missing: write `escalation.md`, do NOT add it silently
 
 #### FIX MODE (after QA loop)
@@ -579,12 +584,18 @@ confidence: HIGH | MEDIUM | LOW
 
 **Process:**
 1. Read acceptance criteria from requirement-card.yaml
-2. Read sprint-contract.yaml — load done_criteria per module as additional test targets
-3. For each criterion: search tests for a covering test that would fail if criterion violated
-   - Covering = invokes code path AND asserts specific behavior (not just "no exception")
-4. Run test suite via Bash (pytest, npm test, go test, etc.)
-5. Capture: command, exit code, pass/fail counts, failure output
-6. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
+2. Read `interface-contracts.yaml` — identify the real endpoint/command/function/field contracts for the assigned Feature
+3. Read sprint-contract.yaml — load done_criteria per module as additional test targets
+4. For each AC-XXX and DC-XXX:
+   - Map it to a real interface-contract or implementation entrypoint
+   - Verify the mapped evidence is sufficient to support the four Implementation completion checks: contract conformance, behavioral conformance, evidence conformance, and output completeness
+   - Search tests for a covering test that would fail if the criterion were violated
+   - Covering = invokes the real code path/entrypoint with meaningful parameters and asserts the specific behavior (not just "no exception")
+   - Do NOT mark PASS from sprint-contract wording alone; if the criterion cannot be mapped to `interface-contracts.yaml` or executable implementation evidence, report contract drift or ambiguity
+5. When tests are weak or missing, inspect implementation code to confirm the actual callable entrypoint, parameters, and response/error contract the test should exercise
+6. Run test suite via Bash (pytest, npm test, go test, etc.)
+7. Capture: command, exit code, pass/fail counts, failure output
+8. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Unmappable/contradictory done_criteria → CRITICAL if QA cannot determine the real contract/entrypoint to validate, else WARNING; Weak tests → WARNING; Untested branches → INFO
 
 **Report Format:**
 ```markdown
@@ -605,8 +616,8 @@ Passing: N | Failing: N
 | AC-001 | ... | COVERED/UNCOVERED/FAILING | test_name |
 
 ## Sprint Contract Verification
-| Criterion | Behavior | Status | Evidence |
-| DC-001 | POST /auth/login returns 200 + JWT | PASS/FAIL | test_login_success |
+| Criterion | Behavior | Contract / Entrypoint | Status | Evidence |
+| DC-001 | POST /auth/login returns 200 + JWT | POST /auth/login | PASS/FAIL/DRIFT (`DRIFT` = contract text cannot be cleanly mapped to `interface-contracts.yaml` or implementation evidence) | test_login_success |
 
 ## Scores
 test_coverage: X/5

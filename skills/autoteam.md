@@ -146,8 +146,8 @@ modules:
       - "Password reset flow"
 ```
 
-4. Implementation uses done_criteria as its implementation checklist
-5. QA Test uses done_criteria as its evaluation checklist (in addition to acceptance criteria)
+4. Implementation uses done_criteria as its implementation checklist, but must validate each item against acceptance criteria, `interface-contracts.yaml`, and real code entrypoints/parameters before marking work done
+5. QA Test uses done_criteria as its evaluation checklist only after mapping each item to acceptance criteria, `interface-contracts.yaml`, and executable implementation evidence (not sprint-contract text alone)
 
 - Print: `[Step 3.5/8] ✓ Sprint contract agreed → sprint-contract.yaml`
 
@@ -452,7 +452,12 @@ modules: []  # Architecture fills this
 - Implement EXACTLY what contracts specify; no extra features
 - Write unit tests alongside (success + error per endpoint, ≥1 test per AC)
 - Follow stack naming conventions; minimal comments; no deprecated APIs
-- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior
+- Before marking the module done, verify the deliverable passes all four checks:
+  1. **Contract conformance:** all contract items exist with the required names, parameters, and response/error shapes
+  2. **Behavioral conformance:** all assigned ACs are implemented and each DC maps to a real contract or entrypoint behavior
+  3. **Evidence conformance:** tests hit real paths with meaningful parameters and assertions; test names or sprint-contract text alone are not enough
+  4. **Output completeness:** all files in the module's `output_files` list in `requirement-card.yaml` exist and no silently added feature extends beyond the agreed scope
+- Self-check: for each DC-XXX in sprint-contract.yaml, verify the code satisfies the stated behavior through the actual contract/entrypoint it refers to; if a DC cannot be mapped cleanly, write `escalation.md`
 - Missing something? Write `escalation.md`, don't add silently
 
 #### FIX MODE
@@ -542,16 +547,18 @@ confidence: HIGH | MEDIUM | LOW
 
 **Process:**
 1. Read acceptance criteria from requirement-card.yaml
-2. Read sprint-contract.yaml — load done_criteria per module as additional test targets
-3. For each: find covering test (invokes code path AND asserts specific behavior)
-4. Run test suite (pytest/npm test/go test/etc.), capture results
-5. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Weak tests → WARNING; Untested branches → INFO
+2. Read `interface-contracts.yaml` — identify the real endpoint/command/function contracts for the assigned Feature
+3. Read sprint-contract.yaml — load done_criteria per module as additional test targets
+4. For each AC/DC: map it to a real contract or implementation entrypoint, verify the evidence supports contract/behavior/evidence/output-completeness checks, then find a covering test that invokes the real path with meaningful parameters and asserts specific behavior
+5. Do NOT mark PASS from sprint-contract wording alone; if a criterion cannot be mapped to `interface-contracts.yaml` or executable implementation evidence, report contract drift or ambiguity
+6. Run test suite (pytest/npm test/go test/etc.), capture results
+7. Failing tests → CRITICAL; Uncovered criteria → CRITICAL; Unmappable blocking criteria (QA cannot determine the real contract/entrypoint to validate) → CRITICAL; Weak tests → WARNING; Untested branches → INFO
 
 **Report includes:**
 - Test Run Results (command, exit code, pass/fail counts)
 - Findings table with Fix column
 - Acceptance Criteria Coverage Map (Criterion | Status | Test)
-- Sprint Contract Verification (DC-XXX | Behavior | PASS/FAIL | Evidence)
+- Sprint Contract Verification (DC-XXX | Behavior | Contract/Entrypoint | PASS/FAIL/DRIFT where DRIFT means the contract text cannot be cleanly mapped to `interface-contracts.yaml` or implementation evidence | Evidence)
 - **Scores:** `test_coverage: X/5`, `functionality: X/5` with 1-2 sentence rationale per score
 - `ALL_CLEAR: true` only if zero CRITICAL
 
